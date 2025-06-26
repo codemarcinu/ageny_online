@@ -6,8 +6,8 @@ import base64
 from io import BytesIO
 from PIL import Image
 
-from src.backend.core.ocr_providers.ocr_factory import OCRProviderFactory
-from src.backend.schemas.ocr_schemas import (
+from ....core.ocr_providers.ocr_factory import OCRProviderFactory
+from ....schemas.ocr_schemas import (
     OCRRequest,
     OCRResponse,
     BatchOCRRequest,

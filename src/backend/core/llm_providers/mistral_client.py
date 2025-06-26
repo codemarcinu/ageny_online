@@ -2,69 +2,65 @@ import asyncio
 import logging
 from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass
-import openai
-from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletion
+import httpx
+from mistralai.client import MistralClient
+from mistralai.models.chat_completion import ChatMessage
 
 logger = logging.getLogger(__name__)
 
 @dataclass
 class ModelConfig:
-    """Configuration for a specific model."""
+    """Configuration for a specific Mistral model."""
     max_tokens: int
     cost_per_1k_input: float
     cost_per_1k_output: float
     context_length: int
 
-class OpenAIProvider:
-    """OpenAI API provider for chat completions and embeddings."""
+class MistralProvider:
+    """Mistral AI API provider for chat completions and embeddings."""
     
-    def __init__(self, api_key: str, organization: Optional[str] = None):
+    def __init__(self, api_key: str):
         """
-        Initialize OpenAI provider.
+        Initialize Mistral provider.
         
         Args:
-            api_key: OpenAI API key
-            organization: OpenAI organization ID (optional)
+            api_key: Mistral API key
         """
         if not api_key:
-            raise ValueError("OpenAI API key is required")
+            raise ValueError("Mistral API key is required")
         
-        self.client = AsyncOpenAI(
-            api_key=api_key,
-            organization=organization
-        )
+        self.client = MistralClient(api_key=api_key)
         
         # Model configurations with costs (as of 2024)
         self.models = {
-            "gpt-4o": ModelConfig(
-                max_tokens=128000,
-                cost_per_1k_input=0.005,
-                cost_per_1k_output=0.015,
-                context_length=128000
+            "mistral-large-latest": ModelConfig(
+                max_tokens=32768,
+                cost_per_1k_input=0.007,
+                cost_per_1k_output=0.024,
+                context_length=32768
             ),
-            "gpt-4o-mini": ModelConfig(
-                max_tokens=128000,
-                cost_per_1k_input=0.00015,
-                cost_per_1k_output=0.0006,
-                context_length=128000
+            "mistral-medium-latest": ModelConfig(
+                max_tokens=32768,
+                cost_per_1k_input=0.0027,
+                cost_per_1k_output=0.0081,
+                context_length=32768
             ),
-            "gpt-4-turbo": ModelConfig(
-                max_tokens=128000,
-                cost_per_1k_input=0.01,
-                cost_per_1k_output=0.03,
-                context_length=128000
+            "mistral-small-latest": ModelConfig(
+                max_tokens=32768,
+                cost_per_1k_input=0.00014,
+                cost_per_1k_output=0.00042,
+                context_length=32768
             ),
-            "gpt-3.5-turbo": ModelConfig(
-                max_tokens=16385,
-                cost_per_1k_input=0.0005,
-                cost_per_1k_output=0.0015,
-                context_length=16385
+            "open-mistral-7b": ModelConfig(
+                max_tokens=32768,
+                cost_per_1k_input=0.00014,
+                cost_per_1k_output=0.00042,
+                context_length=32768
             )
         }
         
-        self.default_model = "gpt-4o-mini"
-        logger.info(f"OpenAI provider initialized with default model: {self.default_model}")
+        self.default_model = "mistral-small-latest"
+        logger.info(f"Mistral provider initialized with default model: {self.default_model}")
     
     async def chat(
         self, 
@@ -82,7 +78,7 @@ class OpenAIProvider:
             model: Model to use (defaults to self.default_model)
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature
-            **kwargs: Additional parameters for OpenAI API
+            **kwargs: Additional parameters for Mistral API
             
         Returns:
             Dictionary containing response text, usage, and cost
@@ -98,9 +94,16 @@ class OpenAIProvider:
         try:
             logger.debug(f"Generating chat completion with model: {model}")
             
-            response: ChatCompletion = await self.client.chat.completions.create(
+            # Convert messages to Mistral format
+            mistral_messages = [
+                ChatMessage(role=msg["role"], content=msg["content"])
+                for msg in messages
+            ]
+            
+            response = await asyncio.to_thread(
+                self.client.chat,
                 model=model,
-                messages=messages,
+                messages=mistral_messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
                 **kwargs
@@ -131,20 +134,14 @@ class OpenAIProvider:
             logger.info(f"Chat completion successful. Cost: ${total_cost:.4f}")
             return result
             
-        except openai.RateLimitError as e:
-            logger.error(f"OpenAI rate limit exceeded: {e}")
-            raise
-        except openai.APIError as e:
-            logger.error(f"OpenAI API error: {e}")
-            raise
         except Exception as e:
-            logger.error(f"Unexpected error in chat completion: {e}")
+            logger.error(f"Error in Mistral chat completion: {e}")
             raise
     
     async def embed(
         self, 
         texts: Union[str, List[str]], 
-        model: str = "text-embedding-3-small"
+        model: str = "mistral-embed"
     ) -> Dict[str, Any]:
         """
         Generate embeddings for text(s).
@@ -162,7 +159,8 @@ class OpenAIProvider:
         try:
             logger.debug(f"Generating embeddings for {len(texts)} texts")
             
-            response = await self.client.embeddings.create(
+            response = await asyncio.to_thread(
+                self.client.embeddings,
                 model=model,
                 input=texts
             )
@@ -170,9 +168,9 @@ class OpenAIProvider:
             embeddings = [data.embedding for data in response.data]
             usage = response.usage
             
-            # Calculate cost (text-embedding-3-small: $0.00002 per 1K tokens)
-            cost_per_1k = 0.00002
-            total_cost = (usage.total_tokens / 1000) * cost_per_1k
+            # Calculate cost (mistral-embed: $0.0001 per 1M tokens)
+            cost_per_1m = 0.0001
+            total_cost = (usage.total_tokens / 1_000_000) * cost_per_1m
             
             result = {
                 "embeddings": embeddings,
@@ -197,4 +195,4 @@ class OpenAIProvider:
     
     def get_model_config(self, model: str) -> Optional[ModelConfig]:
         """Get configuration for a specific model."""
-        return self.models.get(model)
+        return self.models.get(model) 
