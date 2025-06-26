@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import logging
 import time
+import asyncio
 
 from ....config import get_settings
 from ....core.llm_providers.provider_factory import llm_factory, ProviderType, ProviderConfig
@@ -37,6 +38,11 @@ class ChatResponse(BaseModel):
     cost: Dict[str, float]
     finish_reason: str
     response_time: float
+
+class EmbedRequest(BaseModel):
+    """Embedding request model."""
+    texts: List[str] = Field(..., description="List of texts to embed")
+    model: Optional[str] = Field(None, description="Model to use for embedding")
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_completion(request: ChatRequest):
@@ -103,7 +109,7 @@ async def chat_completion(request: ChatRequest):
         logger.error(f"Chat completion failed: {e}")
         raise HTTPException(status_code=500, detail="Chat completion failed")
 
-@router.post("/chat/batch")
+@router.post("/batch")
 async def chat_completion_batch(requests: List[ChatRequest]):
     """
     Generate chat completions for multiple requests in batch.
@@ -206,17 +212,17 @@ async def get_provider_status():
         raise HTTPException(status_code=500, detail="Failed to get provider status")
 
 @router.post("/embed")
-async def create_embeddings(texts: List[str], model: Optional[str] = None):
+async def create_embeddings(request: EmbedRequest):
     """
     Create embeddings for text using available providers.
     """
     try:
-        if not texts:
+        if not request.texts:
             raise HTTPException(status_code=400, detail="At least one text is required")
         
         result = await llm_factory.embed_with_fallback(
-            texts=texts,
-            model=model
+            texts=request.texts,
+            model=request.model
         )
         
         return result

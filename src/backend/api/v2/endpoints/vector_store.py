@@ -6,7 +6,7 @@ import logging
 import time
 import json
 
-from ....config import get_settings
+from ....config import get_settings, get_provider_config
 from ....core.vector_stores.pinecone_client import PineconeClient
 from ....core.vector_stores.weaviate_client import WeaviateClient
 from ....core.llm_providers.provider_factory import llm_factory
@@ -43,6 +43,12 @@ class SearchResult(BaseModel):
     score: float
     text: str
     metadata: Dict[str, Any]
+
+class UploadDocumentsRequest(BaseModel):
+    """Upload documents request model."""
+    documents: List[Document] = Field(..., description="List of documents to upload")
+    index_name: str = Field(..., description="Index/collection name")
+    provider: str = Field("pinecone", description="Vector store provider")
 
 # Initialize vector store clients
 vector_stores = {}
@@ -143,26 +149,22 @@ async def delete_index(provider: str, index_name: str):
         raise HTTPException(status_code=500, detail=f"Failed to delete index: {str(e)}")
 
 @router.post("/documents/upload")
-async def upload_documents(
-    documents: List[Document],
-    index_name: str,
-    provider: str = "pinecone"
-):
+async def upload_documents(request: UploadDocumentsRequest):
     """
     Upload documents to vector store with automatic embedding generation.
     """
     try:
-        if not documents:
+        if not request.documents:
             raise HTTPException(status_code=400, detail="At least one document is required")
         
         # Generate embeddings for documents
-        texts = [doc.text for doc in documents]
+        texts = [doc.text for doc in request.documents]
         embedding_result = await llm_factory.embed_with_fallback(texts=texts)
         embeddings = embedding_result["embeddings"]
         
         # Prepare vectors for upload
         vectors = []
-        for i, doc in enumerate(documents):
+        for i, doc in enumerate(request.documents):
             vector_data = {
                 "id": doc.id,
                 "values": embeddings[i],
@@ -174,24 +176,24 @@ async def upload_documents(
             vectors.append(vector_data)
         
         # Upload to vector store
-        if provider == "pinecone":
+        if request.provider == "pinecone":
             client = get_pinecone_client()
             if not client:
                 raise HTTPException(status_code=400, detail="Pinecone not configured")
             
             result = await client.upsert_vectors(
-                index_name=index_name,
+                index_name=request.index_name,
                 vectors=vectors
             )
             
-        elif provider == "weaviate":
+        elif request.provider == "weaviate":
             client = get_weaviate_client()
             if not client:
                 raise HTTPException(status_code=400, detail="Weaviate not configured")
             
             # Convert to Weaviate format
             objects = []
-            for doc in documents:
+            for doc in request.documents:
                 obj = {
                     "id": doc.id,
                     "text": doc.text,
@@ -200,18 +202,18 @@ async def upload_documents(
                 objects.append(obj)
             
             result = await client.insert_objects(
-                collection_name=index_name,
+                collection_name=request.index_name,
                 objects=objects
             )
             
         else:
-            raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
+            raise HTTPException(status_code=400, detail=f"Unsupported provider: {request.provider}")
         
         return {
             "success": True,
-            "provider": provider,
-            "index_name": index_name,
-            "documents_uploaded": len(documents),
+            "provider": request.provider,
+            "index_name": request.index_name,
+            "documents_uploaded": len(request.documents),
             "embedding_cost": embedding_result.get("cost", 0),
             "vector_store_cost": result.get("cost", 0),
             "total_cost": embedding_result.get("cost", 0) + result.get("cost", 0)

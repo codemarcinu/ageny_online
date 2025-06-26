@@ -6,7 +6,7 @@ import base64
 from io import BytesIO
 from PIL import Image
 
-from ....core.ocr_providers.ocr_factory import OCRProviderFactory
+from ....core.ocr_providers.ocr_factory import ocr_factory
 from ....schemas.ocr_schemas import (
     OCRRequest,
     OCRResponse,
@@ -57,7 +57,6 @@ async def extract_text(
         )
         
         # Process with OCR factory
-        ocr_factory = OCRProviderFactory()
         result = await ocr_factory.extract_text(ocr_request)
         
         return OCRResponse(
@@ -119,7 +118,6 @@ async def batch_extract_text(
         )
         
         # Process with OCR factory
-        ocr_factory = OCRProviderFactory()
         result = await ocr_factory.batch_extract_text(batch_request)
         
         return BatchOCRResponse(
@@ -144,7 +142,6 @@ async def get_ocr_providers():
         List of available OCR providers with their information
     """
     try:
-        ocr_factory = OCRProviderFactory()
         providers = ocr_factory.get_available_providers()
         
         provider_info = []
@@ -170,7 +167,6 @@ async def ocr_health_check():
         Health status of OCR providers
     """
     try:
-        ocr_factory = OCRProviderFactory()
         providers = ocr_factory.get_available_providers()
         
         health_status = {}

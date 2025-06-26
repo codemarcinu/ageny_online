@@ -75,7 +75,7 @@ class GoogleVisionProvider:
             request = types.AnnotateImageRequest(
                 image=image,
                 features=[types.Feature(type_=types.Feature.Type.TEXT_DETECTION, max_results=kwargs.get('max_results', 10))],
-                image_context=types.ImageContext(text_detection_params=config)
+                image_context=types.ImageContext(language_hints=language_hints or ["en"])
             )
             
             # Call Google Vision API
