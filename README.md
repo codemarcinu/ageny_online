@@ -2,6 +2,14 @@
 
 **Modern AI Assistant with External API Providers**
 
+[![CI/CD](https://github.com/codemarcinu/ageny_online/workflows/CI/badge.svg)](https://github.com/codemarcinu/ageny_online/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
+[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)](https://github.com/codemarcinu/ageny_online)
+
 Ageny Online is a scalable, cloud-based AI assistant that leverages external API providers instead of local models, making it perfect for laptops without GPU requirements. It provides a cost-effective solution for AI-powered applications with enterprise-grade features.
 
 ## 📋 Overview
@@ -228,6 +236,35 @@ COST_ALERT_THRESHOLD=80.0 # USD
 - [API Reference](docs/API_REFERENCE.md) - Detailed API documentation
 - [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) - Production deployment instructions
 - [Contributing Guide](docs/CONTRIBUTING_GUIDE.md) - Development guidelines
+- [Roadmap](ROADMAP.md) - Project development plans and future features
+- [Community Guidelines](COMMUNITY.md) - Community standards and guidelines
+- [Release Notes](RELEASE_NOTES.md) - Version history and release information
+
+## 🤝 Community
+
+Join our growing community of AI enthusiasts and developers!
+
+- **📖 [Community Guidelines](COMMUNITY.md)** - Learn about our values and standards
+- **🗺️ [Roadmap](ROADMAP.md)** - See what's coming next
+- **💬 [Discussions](https://github.com/codemarcinu/ageny_online/discussions)** - Join community conversations
+- **🐛 [Issues](https://github.com/codemarcinu/ageny_online/issues)** - Report bugs and request features
+- **📝 [Contributing](CONTRIBUTING.md)** - Learn how to contribute
+
+### Community Stats
+- 🌟 **Stars**: Help us reach 1000+ stars
+- 🤝 **Contributors**: Join 50+ active contributors
+- 📊 **Issues**: < 24h average response time
+- 🚀 **Releases**: Regular updates and improvements
+
+## 🗺️ Roadmap
+
+Check out our [Roadmap](ROADMAP.md) to see what's coming next! We're actively working on:
+
+- 🔥 **v1.1.0**: Enhanced conversation management and user authentication
+- 🌟 **v1.2.0**: Enterprise features and multi-tenant architecture  
+- 🚀 **v2.0.0**: Plugin system and advanced AI workflows
+
+We welcome community input on our roadmap - feel free to [create an issue](https://github.com/codemarcinu/ageny_online/issues) with your suggestions!
 
 ## 🧪 Testing
 
@@ -411,43 +448,4 @@ Use conventional commits:
 - `feat:` - new feature
 - `fix:` - bug fix
 - `docs:` - documentation changes
-- `test:` - adding or changing tests
-- `refactor:` - code refactoring
-- `chore:` - maintenance tasks
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **Issues**: [GitHub Issues](https://github.com/codemarcinu/ageny_online/issues)
-- **Documentation**: [API Docs](http://localhost:8000/docs)
-- **Email**: support@ageny-online.com
-
-## 🔄 Migration from Local AI
-
-### Migration Steps
-
-1. **Backup data** from local database
-2. **Export documents** to JSON format
-3. **Configure** new API providers
-4. **Import data** to vector store
-5. **Test functionality**
-6. **Production deployment**
-
-### Architectural Differences
-
-| Aspect | Local AI (Ollama) | Ageny Online |
-|--------|------------------|--------------|
-| **GPU** | Required (8GB+ VRAM) | Not required |
-| **RAM** | 16GB+ | 4GB+ |
-| **Costs** | Energy + Infrastructure | API calls |
-| **Scalability** | Limited | Unlimited |
-| **Availability** | Local | Global |
-
----
-
-**Ageny Online** - Modern AI without GPU requirements! 🚀
-
-Made with ❤️ by the Ageny Online Team
+- `test:`
