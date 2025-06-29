@@ -6,7 +6,7 @@ Zapewnia walidację danych konwersacji z pełną separacją.
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import BaseModel, validator, constr
+from pydantic import BaseModel, field_validator, constr, ConfigDict
 
 
 class ConversationBase(BaseModel):
@@ -18,14 +18,16 @@ class ConversationBase(BaseModel):
     provider_used: Optional[str] = None
     metadata: Optional[dict] = None
     
-    @validator('session_id')
+    @field_validator('session_id')
+    @classmethod
     def validate_session_id(cls, v: str) -> str:
         """Validate session ID format."""
         if not v.strip():
             raise ValueError('Session ID cannot be empty')
         return v.strip()
     
-    @validator('agent_type')
+    @field_validator('agent_type')
+    @classmethod
     def validate_agent_type(cls, v: str) -> str:
         """Validate agent type."""
         if not v.strip():
@@ -56,9 +58,9 @@ class ConversationResponse(ConversationBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        """Pydantic configuration."""
-        from_attributes = True
-        json_encoders = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_encoders={
             datetime: lambda v: v.isoformat()
-        } 
+        }
+    ) 

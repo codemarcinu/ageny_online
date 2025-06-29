@@ -6,7 +6,7 @@ Zapewnia walidację danych użytkownika z pełną separacją.
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, validator, constr
+from pydantic import BaseModel, EmailStr, field_validator, constr, ConfigDict
 
 
 class UserBase(BaseModel):
@@ -17,7 +17,8 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     is_active: bool = True
     
-    @validator('username')
+    @field_validator('username')
+    @classmethod
     def validate_username(cls, v: str) -> str:
         """Validate username format."""
         if not v.strip():
@@ -32,7 +33,8 @@ class UserCreate(UserBase):
     
     password: constr(min_length=8, max_length=100)
     
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v: str) -> str:
         """Validate password strength."""
         if not v.strip():
@@ -51,7 +53,8 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     preferences: Optional[str] = None
     
-    @validator('username')
+    @field_validator('username')
+    @classmethod
     def validate_username(cls, v: Optional[str]) -> Optional[str]:
         """Validate username format if provided."""
         if v is not None:
@@ -72,9 +75,9 @@ class UserResponse(UserBase):
     updated_at: datetime
     preferences: Optional[str] = None
     
-    class Config:
-        """Pydantic configuration."""
-        from_attributes = True
-        json_encoders = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_encoders={
             datetime: lambda v: v.isoformat()
-        } 
+        }
+    ) 

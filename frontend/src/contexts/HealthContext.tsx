@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useApi } from './ApiContext'
 
 interface HealthStatus {
   status: 'healthy' | 'unhealthy' | 'loading'
@@ -25,7 +24,6 @@ interface HealthContextType {
 const HealthContext = createContext<HealthContextType | undefined>(undefined)
 
 export function HealthProvider({ children }: { children: ReactNode }) {
-  const { api } = useApi()
   const [healthStatus, setHealthStatus] = useState<HealthStatus>({ status: 'loading' })
   const [isLoading, setIsLoading] = useState(false)
 

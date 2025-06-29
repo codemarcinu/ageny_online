@@ -6,7 +6,7 @@ Zapewnia walidację danych kosztów z pełną separacją.
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, validator, constr
+from pydantic import BaseModel, field_validator, constr, ConfigDict
 
 
 class CostRecordBase(BaseModel):
@@ -21,7 +21,8 @@ class CostRecordBase(BaseModel):
     request_count: int = 1
     metadata: Optional[dict] = None
     
-    @validator('service_type')
+    @field_validator('service_type')
+    @classmethod
     def validate_service_type(cls, v: str) -> str:
         """Validate service type."""
         valid_types = ['chat', 'ocr', 'embedding', 'vision', 'other']
@@ -29,7 +30,8 @@ class CostRecordBase(BaseModel):
             raise ValueError(f'Service type must be one of: {valid_types}')
         return v
     
-    @validator('cost')
+    @field_validator('cost')
+    @classmethod
     def validate_cost(cls, v: str) -> str:
         """Validate cost format."""
         try:
@@ -53,10 +55,10 @@ class CostRecordResponse(CostRecordBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        """Pydantic configuration."""
-        from_attributes = True
-        json_encoders = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_encoders={
             datetime: lambda v: v.isoformat(),
             date: lambda v: v.isoformat()
-        } 
+        }
+    ) 

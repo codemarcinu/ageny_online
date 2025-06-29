@@ -21,13 +21,13 @@ class Conversation(Base):
     provider_used = Column(String(50), nullable=True)
     meta_data = Column(JSON, nullable=True)
     
-    # Relationships - using full module paths to prevent conflicts
+    # Relationships - using class names only
     user = relationship(
-        "src.backend.models.user.User",
+        "User",
         back_populates="conversations"
     )
     messages = relationship(
-        "src.backend.models.conversation.Message",
+        "Message",
         back_populates="conversation",
         cascade="all, delete-orphan"
     )
@@ -52,9 +52,9 @@ class Message(Base):
     processing_time = Column(String(20), nullable=True)  # Store as string
     meta_data = Column(JSON, nullable=True)
     
-    # Relationships - using full module paths to prevent conflicts
+    # Relationships - using class names only
     conversation = relationship(
-        "src.backend.models.conversation.Conversation",
+        "Conversation",
         back_populates="messages"
     )
     

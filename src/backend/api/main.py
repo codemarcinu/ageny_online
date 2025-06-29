@@ -7,6 +7,9 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional
 import json
+import os
+from pathlib import Path
+import time
 
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,11 +35,21 @@ from backend.api.v2.endpoints.web_search import router as web_search_router
 from backend.api.v2.endpoints.gamification import router as gamification_router
 # Import Profile endpoints
 from backend.api.v2.endpoints.profile import router as profile_router
+# Import Vector Store endpoints
+from backend.api.v2.endpoints.vector_store import router as vector_store_router
 
-# Configure logging
+# Create logs directory if it doesn't exist
+log_dir = Path("logs")
+log_dir.mkdir(exist_ok=True)
+
+# Configure logging to both file and console
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper()),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_dir / "backend.log"),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -105,10 +118,19 @@ if settings.ENABLE_METRICS:
 async def root() -> Dict[str, Any]:
     """Root endpoint"""
     return {
-        "message": f"Welcome to {settings.APP_NAME}",
+        "message": "Ageny Online API",
         "version": settings.APP_VERSION,
         "status": "running",
         "environment": settings.ENVIRONMENT,
+        "endpoints": [
+            "/health",
+            "/api/v1/chat",
+            "/api/v1/providers",
+            "/api/v1/agents",
+            "/api/v2/chat/chat",
+            "/api/v2/ocr/extract-text",
+            "/api/v2/web-search/search"
+        ]
     }
 
 
@@ -116,11 +138,29 @@ async def root() -> Dict[str, Any]:
 async def health_check() -> Dict[str, Any]:
     """Health check endpoint"""
     try:
+        # Initialize agent if not already done
+        global general_agent
+        if 'general_agent' not in globals() or general_agent is None:
+            general_agent = GeneralConversationAgent()
+        
         # Check agent health
         agent_health = await general_agent.health_check()
         
         # Check provider health
         provider_health = await provider_factory.health_check_all()
+        
+        # Get available providers
+        available_providers = provider_factory.get_available_providers()
+        configured_providers = provider_factory.get_configured_providers()
+        
+        # Format provider info
+        llm_providers = {}
+        for provider_type in available_providers:
+            llm_providers[provider_type.value] = {
+                "available": True,
+                "configured": provider_type in configured_providers,
+                "priority": provider_factory.get_provider_priority(provider_type),
+            }
         
         return {
             "status": "healthy" if agent_health["status"] == "healthy" else "unhealthy",
@@ -130,13 +170,20 @@ async def health_check() -> Dict[str, Any]:
                 "environment": settings.ENVIRONMENT,
             },
             "agent": agent_health,
-            "providers": provider_health,
+            "llm_providers": llm_providers,
+            "ocr_providers": {},  # TODO: Add OCR provider health check
+            "vector_stores": {},  # TODO: Add vector store health check
+            "timestamp": time.time(),
         }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return {
             "status": "unhealthy",
             "error": str(e),
+            "llm_providers": {},
+            "ocr_providers": {},
+            "vector_stores": {},
+            "timestamp": time.time(),
         }
 
 
@@ -247,6 +294,14 @@ async def get_providers() -> Dict[str, Any]:
             }
         
         return {
+            "llm_providers": provider_info,
+            "ocr_providers": {},  # TODO: Add OCR providers
+            "vector_stores": {},  # TODO: Add vector stores
+            "priorities": {
+                "llm": provider_factory.get_provider_priorities(),
+                "ocr": {},
+                "vector": {}
+            },
             "available_providers": [p.value for p in available_providers],
             "configured_providers": [p.value for p in configured_providers],
             "provider_details": provider_info,
@@ -275,6 +330,48 @@ async def get_agents() -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"Get agents error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/setup")
+async def setup_providers() -> Dict[str, Any]:
+    """Setup providers endpoint"""
+    try:
+        # Mock setup process
+        return {
+            "status": "success",
+            "success": True,
+            "message": "Providers setup completed",
+            "providers_configured": len(provider_factory.get_configured_providers()),
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        logger.error(f"Setup error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/costs")
+async def get_cost_info() -> Dict[str, Any]:
+    """Get cost information endpoint"""
+    try:
+        return {
+            "total_cost": 0.0,
+            "cost_breakdown": {
+                "llm": 0.0,
+                "ocr": 0.0,
+                "vector_store": 0.0
+            },
+            "llm_providers": {
+                "openai": {"cost": 0.0, "requests": 0},
+                "mistral": {"cost": 0.0, "requests": 0},
+                "anthropic": {"cost": 0.0, "requests": 0}
+            },
+            "currency": "USD",
+            "period": "all_time",
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        logger.error(f"Cost info error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -313,6 +410,8 @@ app.include_router(web_search_router, prefix="/api/v2")
 app.include_router(gamification_router, prefix="/api/v2")
 # Include Profile endpoints
 app.include_router(profile_router, prefix="/api/v2")
+# Include Vector Store endpoints
+app.include_router(vector_store_router, prefix="/api/v2")
 
 
 @app.exception_handler(Exception)

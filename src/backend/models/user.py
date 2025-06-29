@@ -22,9 +22,9 @@ class User(Base):
     full_name = Column(String(100), nullable=True)
     preferences = Column(Text, nullable=True)  # JSON string
     
-    # Relationships - using full module paths to prevent conflicts
+    # Relationships - using class names only
     conversations = relationship(
-        "src.backend.models.conversation.Conversation",
+        "Conversation",
         back_populates="user",
         cascade="all, delete-orphan"
     )

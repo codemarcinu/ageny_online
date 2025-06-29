@@ -6,7 +6,7 @@ Zapewnia walidację danych wiadomości z pełną separacją.
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, validator, constr
+from pydantic import BaseModel, field_validator, constr, ConfigDict
 
 
 class MessageBase(BaseModel):
@@ -22,7 +22,8 @@ class MessageBase(BaseModel):
     processing_time: Optional[str] = None
     metadata: Optional[dict] = None
     
-    @validator('role')
+    @field_validator('role')
+    @classmethod
     def validate_role(cls, v: str) -> str:
         """Validate message role."""
         valid_roles = ['user', 'assistant', 'system']
@@ -30,7 +31,8 @@ class MessageBase(BaseModel):
             raise ValueError(f'Role must be one of: {valid_roles}')
         return v
     
-    @validator('content')
+    @field_validator('content')
+    @classmethod
     def validate_content(cls, v: str) -> str:
         """Validate message content."""
         if not v.strip():
@@ -50,9 +52,9 @@ class MessageResponse(MessageBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        """Pydantic configuration."""
-        from_attributes = True
-        json_encoders = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_encoders={
             datetime: lambda v: v.isoformat()
-        } 
+        }
+    ) 

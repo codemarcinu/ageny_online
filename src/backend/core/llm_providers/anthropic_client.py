@@ -1,6 +1,6 @@
 """
-Mistral AI LLM Provider.
-Zapewnia integrację z Mistral AI API dla LLM operations.
+Anthropic LLM Provider.
+Zapewnia integrację z Anthropic API dla LLM operations.
 """
 
 import logging
@@ -15,8 +15,8 @@ from .provider_factory import BaseLLMProvider
 logger = logging.getLogger(__name__)
 
 
-class MistralConfig(BaseModel):
-    """Configuration for Mistral provider"""
+class AnthropicConfig(BaseModel):
+    """Configuration for Anthropic provider"""
     
     model_name: str
     max_tokens: int
@@ -27,61 +27,61 @@ class MistralConfig(BaseModel):
     supports_vision: bool = True
 
 
-class MistralProvider(BaseLLMProvider):
+class AnthropicProvider(BaseLLMProvider):
     """
-    Mistral AI LLM Provider.
-    Zapewnia integrację z Mistral AI API dla LLM operations.
+    Anthropic LLM Provider.
+    Zapewnia integrację z Anthropic API dla LLM operations.
     """
 
     def __init__(self, api_key: str) -> None:
-        """Initialize Mistral provider"""
+        """Initialize Anthropic provider"""
         super().__init__(api_key)
         
-        self.base_url = settings.MISTRAL_BASE_URL
+        self.base_url = "https://api.anthropic.com"
         self.http_client = httpx.AsyncClient(
             timeout=60.0,
             headers={
-                "Authorization": f"Bearer {self.api_key}",
+                "x-api-key": self.api_key,
                 "Content-Type": "application/json",
                 "User-Agent": settings.USER_AGENT,
             }
         )
         
-        # Model configurations for Mistral
+        # Model configurations for Anthropic
         self.models = {
-            "mistral-large-latest": MistralConfig(
-                model_name="mistral-large-latest",
+            "claude-3-opus-20240229": AnthropicConfig(
+                model_name="claude-3-opus-20240229",
                 max_tokens=4096,
                 temperature=0.1,
-                cost_per_1k_input=0.007,
-                cost_per_1k_output=0.024,
+                cost_per_1k_input=0.015,
+                cost_per_1k_output=0.075,
                 supports_streaming=True,
                 supports_vision=True,
             ),
-            "mistral-medium-latest": MistralConfig(
-                model_name="mistral-medium-latest",
+            "claude-3-sonnet-20240229": AnthropicConfig(
+                model_name="claude-3-sonnet-20240229",
                 max_tokens=4096,
                 temperature=0.1,
-                cost_per_1k_input=0.0024,
-                cost_per_1k_output=0.0072,
+                cost_per_1k_input=0.003,
+                cost_per_1k_output=0.015,
                 supports_streaming=True,
                 supports_vision=True,
             ),
-            "mistral-small-latest": MistralConfig(
-                model_name="mistral-small-latest",
+            "claude-3-haiku-20240307": AnthropicConfig(
+                model_name="claude-3-haiku-20240307",
                 max_tokens=4096,
                 temperature=0.1,
-                cost_per_1k_input=0.0007,
-                cost_per_1k_output=0.0024,
+                cost_per_1k_input=0.00025,
+                cost_per_1k_output=0.00125,
                 supports_streaming=True,
                 supports_vision=True,
             ),
         }
         
         # Default model
-        self.default_model = settings.MISTRAL_CHAT_MODEL
+        self.default_model = "claude-3-sonnet-20240229"
         
-        logger.info(f"Mistral provider initialized with model: {self.default_model}")
+        logger.info(f"Anthropic provider initialized with model: {self.default_model}")
 
     async def chat(
         self, 
@@ -90,7 +90,7 @@ class MistralProvider(BaseLLMProvider):
         **kwargs: Any
     ) -> str:
         """
-        Generate chat completion using Mistral AI.
+        Generate chat completion using Anthropic.
         
         Args:
             messages: List of message dictionaries
@@ -112,62 +112,65 @@ class MistralProvider(BaseLLMProvider):
                 model_name = self.default_model
                 model_config = self.models.get(model_name)
             
+            # Convert messages to Anthropic format
+            anthropic_messages = []
+            for msg in messages:
+                if msg["role"] == "user":
+                    anthropic_messages.append({"role": "user", "content": msg["content"]})
+                elif msg["role"] == "assistant":
+                    anthropic_messages.append({"role": "assistant", "content": msg["content"]})
+                elif msg["role"] == "system":
+                    # Anthropic doesn't support system messages in the same way
+                    # We'll prepend it to the first user message
+                    if anthropic_messages and anthropic_messages[0]["role"] == "user":
+                        anthropic_messages[0]["content"] = f"{msg['content']}\n\n{anthropic_messages[0]['content']}"
+            
             # Prepare request payload
             payload = {
                 "model": model_name,
-                "messages": messages,
+                "messages": anthropic_messages,
                 "max_tokens": kwargs.get("max_tokens", model_config.max_tokens if model_config else 4096),
                 "temperature": kwargs.get("temperature", model_config.temperature if model_config else 0.1),
-                "stream": kwargs.get("stream", False),
             }
             
-            # Add optional parameters
-            if "top_p" in kwargs:
-                payload["top_p"] = kwargs["top_p"]
-            if "frequency_penalty" in kwargs:
-                payload["frequency_penalty"] = kwargs["frequency_penalty"]
-            if "presence_penalty" in kwargs:
-                payload["presence_penalty"] = kwargs["presence_penalty"]
-            
-            logger.debug(f"Mistral chat request: model={model_name}, messages_count={len(messages)}")
+            logger.debug(f"Anthropic chat request: model={model_name}, messages_count={len(anthropic_messages)}")
             
             # Make API request
             response = await self.http_client.post(
-                f"{self.base_url}/chat/completions",
+                f"{self.base_url}/v1/messages",
                 json=payload
             )
             
             if response.status_code != 200:
-                error_msg = f"Mistral API error: {response.status_code} - {response.text}"
+                error_msg = f"Anthropic API error: {response.status_code} - {response.text}"
                 logger.error(error_msg)
                 raise Exception(error_msg)
             
             response_data = response.json()
             
             # Extract response text
-            response_text = response_data["choices"][0]["message"]["content"]
+            response_text = response_data["content"][0]["text"]
             
             # Calculate usage and cost
             usage = response_data.get("usage", {})
-            input_tokens = usage.get("prompt_tokens", 0)
-            output_tokens = usage.get("completion_tokens", 0)
-            total_tokens = usage.get("total_tokens", 0)
+            input_tokens = usage.get("input_tokens", 0)
+            output_tokens = usage.get("output_tokens", 0)
             
             cost = self.calculate_cost(model_name, input_tokens, output_tokens)
             
             logger.info(
-                f"Mistral chat completed: model={model_name}, tokens={total_tokens}, cost=${cost:.4f}"
+                f"Anthropic chat completed: model={model_name}, tokens={input_tokens + output_tokens}, cost=${cost:.4f}"
             )
             
             return response_text
             
         except Exception as e:
-            logger.error(f"Mistral chat error: {e}")
-            raise Exception(f"Mistral chat failed: {e}")
+            logger.error(f"Anthropic chat error: {e}")
+            raise Exception(f"Anthropic chat failed: {e}")
 
     async def embed(self, text: str, model: Optional[str] = None, **kwargs: Any) -> List[float]:
         """
-        Generate embeddings using Mistral AI.
+        Generate embeddings using Anthropic.
         
         Args:
             text: Text to embed
@@ -181,8 +184,8 @@ class MistralProvider(BaseLLMProvider):
             Exception: If API call fails
         """
         try:
-            # Mistral uses a separate embedding model
-            embedding_model = "mistral-embed"
+            # Anthropic uses a separate embedding model
+            embedding_model = "claude-3-sonnet-20240229"
             
             # Prepare request payload
             payload = {
@@ -190,16 +193,16 @@ class MistralProvider(BaseLLMProvider):
                 "input": text,
             }
             
-            logger.debug(f"Mistral embed request: model={embedding_model}, text_length={len(text)}")
+            logger.debug(f"Anthropic embed request: model={embedding_model}, text_length={len(text)}")
             
             # Make API request
             response = await self.http_client.post(
-                f"{self.base_url}/embeddings",
+                f"{self.base_url}/v1/embeddings",
                 json=payload
             )
             
             if response.status_code != 200:
-                error_msg = f"Mistral API error: {response.status_code} - {response.text}"
+                error_msg = f"Anthropic embedding API error: {response.status_code} - {response.text}"
                 logger.error(error_msg)
                 raise Exception(error_msg)
             
@@ -208,21 +211,17 @@ class MistralProvider(BaseLLMProvider):
             # Extract embedding
             embedding = response_data["data"][0]["embedding"]
             
-            # Calculate usage
-            usage = response_data.get("usage", {})
-            total_tokens = usage.get("total_tokens", 0)
-            
-            logger.info(f"Mistral embed completed: model={embedding_model}, tokens={total_tokens}")
+            logger.debug(f"Anthropic embed completed: model={embedding_model}, embedding_length={len(embedding)}")
             
             return embedding
             
         except Exception as e:
-            logger.error(f"Mistral embed error: {e}")
-            raise Exception(f"Mistral embed failed: {e}")
+            logger.error(f"Anthropic embed error: {e}")
+            raise Exception(f"Anthropic embed failed: {e}")
 
     async def complete_text(self, prompt: str, model: Optional[str] = None, **kwargs: Any) -> str:
         """
-        Complete text using Mistral AI (alias for chat with single message).
+        Complete text using Anthropic (alias for chat with single message).
         
         Args:
             prompt: Text prompt to complete
@@ -255,39 +254,38 @@ class MistralProvider(BaseLLMProvider):
         return await self.embed(text, model)
 
     async def health_check(self) -> Dict[str, Any]:
-        """Check if Mistral API is available"""
+        """
+        Check health of Anthropic API.
+        
+        Returns:
+            Health status dictionary
+        """
         try:
-            # Try to list models to check API connectivity
-            response = await self.http_client.get(f"{self.base_url}/models")
+            # Simple health check - try to get model info
+            response = await self.http_client.get(f"{self.base_url}/v1/models")
             
             if response.status_code == 200:
-                models_data = response.json()
-                available_models = [model["id"] for model in models_data.get("data", [])]
-                
                 return {
                     "status": "healthy",
-                    "models_count": len(available_models),
-                    "available_models": available_models,
-                    "provider": "mistral",
-                    "default_model": self.default_model,
+                    "provider": "anthropic",
+                    "models_available": True
                 }
             else:
                 return {
                     "status": "unhealthy",
-                    "error": f"API returned status {response.status_code}",
-                    "provider": "mistral",
+                    "provider": "anthropic",
+                    "error": f"API returned {response.status_code}"
                 }
                 
         except Exception as e:
-            logger.error(f"Mistral health check failed: {e}")
             return {
                 "status": "unhealthy",
-                "error": str(e),
-                "provider": "mistral",
+                "provider": "anthropic",
+                "error": str(e)
             }
 
-    def get_model_info(self, model_name: str) -> Optional[MistralConfig]:
-        """Get information about a specific model"""
+    def get_model_info(self, model_name: str) -> Optional[AnthropicConfig]:
+        """Get configuration for a specific model"""
         return self.models.get(model_name)
 
     def get_available_models(self) -> List[str]:
@@ -302,8 +300,9 @@ class MistralProvider(BaseLLMProvider):
         
         input_cost = (input_tokens / 1000) * model_config.cost_per_1k_input
         output_cost = (output_tokens / 1000) * model_config.cost_per_1k_output
+        
         return input_cost + output_cost
 
     async def close(self) -> None:
         """Close HTTP client"""
-        await self.http_client.aclose()
+        await self.http_client.aclose() 

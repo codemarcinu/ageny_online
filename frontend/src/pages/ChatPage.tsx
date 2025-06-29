@@ -50,7 +50,7 @@ export default function ChatPage() {
     setIsLoading(true)
 
     try {
-      const response = await api.post('/api/v2/chat/chat', {
+      const response = await api.post('/v2/chat/chat', {
         messages: [
           ...messages.map(msg => ({ role: msg.role, content: msg.content })),
           { role: 'user', content: inputMessage }

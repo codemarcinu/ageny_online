@@ -6,6 +6,7 @@ import os
 from PIL import Image
 import io
 import base64
+from backend.core.llm_providers.provider_factory import provider_factory
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
@@ -46,10 +47,20 @@ class TestHealthEndpoints:
         assert data["status"] == "running"
         assert "endpoints" in data
     
-    def test_health_check(self, client):
-        """Test health check endpoint."""
+    @patch.object(provider_factory, "health_check_all", new_callable=AsyncMock)
+    @patch.object(provider_factory, "get_available_providers")
+    @patch.object(provider_factory, "get_configured_providers")
+    @patch.object(provider_factory, "get_best_provider")
+    @patch.object(provider_factory, "create_provider")
+    def test_health_check(self, mock_create_provider, mock_get_best, mock_get_configured, mock_get_available, mock_health_check_all, client):
+        mock_health_check_all.return_value = {"status": "healthy"}
+        mock_get_available.return_value = []
+        mock_get_configured.return_value = []
+        mock_get_best.return_value = "openai"
+        mock_provider = Mock()
+        mock_provider.health_check = AsyncMock(return_value={"status": "healthy"})
+        mock_create_provider.return_value = mock_provider
         response = client.get("/health")
-        
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"

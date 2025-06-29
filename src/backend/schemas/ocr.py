@@ -6,7 +6,7 @@ Zapewnia walidację danych OCR z pełną separacją.
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import BaseModel, validator, constr
+from pydantic import BaseModel, field_validator, constr, ConfigDict
 
 
 class OCRRequest(BaseModel):
@@ -16,7 +16,8 @@ class OCRRequest(BaseModel):
     model: Optional[str] = None
     prompt: Optional[str] = None
     
-    @validator('provider')
+    @field_validator('provider')
+    @classmethod
     def validate_provider(cls, v: Optional[str]) -> Optional[str]:
         """Validate OCR provider."""
         if v is not None:
@@ -37,9 +38,7 @@ class OCRResponse(BaseModel):
     cost: Optional[float] = None
     metadata: dict
     
-    class Config:
-        """Pydantic configuration."""
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OCRBatchResponse(BaseModel):
@@ -49,6 +48,4 @@ class OCRBatchResponse(BaseModel):
     total_cost: float
     total_tokens: int
     
-    class Config:
-        """Pydantic configuration."""
-        from_attributes = True 
+    model_config = ConfigDict(from_attributes=True) 
