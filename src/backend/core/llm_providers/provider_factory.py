@@ -183,6 +183,95 @@ class LLMProviderFactory:
         """Get provider instance by type"""
         return cls.create_provider(provider_type)
 
+    @classmethod
+    async def chat_with_fallback(
+        cls,
+        messages: list,
+        model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        temperature: float = 0.7,
+        **kwargs
+    ) -> dict[str, Any]:
+        """
+        Generate chat completion with automatic fallback to available providers.
+        
+        Args:
+            messages: List of message dictionaries
+            model: Model to use (will be adapted per provider if needed)
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dictionary containing response and provider info
+        """
+        configured_providers = cls.get_configured_providers()
+        
+        if not configured_providers:
+            raise RuntimeError("No configured providers available")
+        
+        # Sort by priority (lower number = higher priority)
+        sorted_providers = sorted(
+            configured_providers,
+            key=lambda p: cls.get_provider_priority(p)
+        )
+        
+        last_error = None
+        
+        for provider_type in sorted_providers:
+            try:
+                provider = cls.create_provider(provider_type)
+                
+                # Adapt model name for provider if needed
+                adapted_model = cls._adapt_model_for_provider(model, provider_type)
+                
+                result = await provider.chat(
+                    messages=messages,
+                    model=adapted_model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    **kwargs
+                )
+                
+                # Add provider info to result
+                if isinstance(result, str):
+                    result = {"text": result}
+                result["provider"] = provider_type.value
+                logger.info(f"Chat completion successful with {provider_type.value}")
+                return result
+                
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Provider {provider_type.value} failed: {e}")
+                continue
+        
+        # All providers failed
+        raise RuntimeError(f"All providers failed. Last error: {last_error}")
+
+    @classmethod
+    def _adapt_model_for_provider(cls, model: Optional[str], provider_type: ProviderType) -> Optional[str]:
+        """Adapt model name for specific provider."""
+        if not model:
+            return None
+        
+        # Model mapping for different providers
+        model_mapping = {
+            ProviderType.OPENAI: {
+                "gpt-4": "gpt-4o",
+                "gpt-3.5": "gpt-3.5-turbo",
+                "gpt-4-turbo": "gpt-4o",
+                "gpt-4o-mini": "gpt-4o-mini"
+            },
+            ProviderType.MISTRAL: {
+                "gpt-4": "mistral-large-latest",
+                "gpt-3.5": "mistral-small-latest",
+                "gpt-4-turbo": "mistral-large-latest",
+                "gpt-4o-mini": "mistral-small-latest"
+            }
+        }
+        
+        return model_mapping.get(provider_type, {}).get(model, model)
+
 
 # Import and register providers
 try:

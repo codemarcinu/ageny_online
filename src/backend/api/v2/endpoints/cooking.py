@@ -4,7 +4,7 @@ Zapewnia API dla funkcjonalności kulinarnych z pełną separacją.
 """
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
@@ -12,6 +12,7 @@ from backend.database import get_async_session
 from backend.services.cooking_service import (
     CookingProductService, CookingRecipeService, CookingShoppingListService
 )
+from backend.services.ocr_service import OCRService
 from backend.schemas.cooking import (
     ProductCreate, ProductResponse, ProductUpdate, ProductSearchRequest,
     RecipeCreate, RecipeResponse, RecipeUpdate, RecipeSearchRequest,
@@ -115,13 +116,76 @@ async def delete_product(
 
 @router.post("/products/scan", response_model=List[ProductResponse])
 async def scan_product(
+    image: UploadFile = File(..., description="Image of product to scan"),
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Query(..., description="User ID")  # TODO: Replace with proper auth
 ):
-    """Scan product using OCR (placeholder)."""
-    # TODO: Implement OCR scanning
-    logger.info(f"Product scan requested for user {user_id}")
-    raise HTTPException(status_code=501, detail="OCR scanning not implemented yet")
+    """Scan product using OCR and AI to extract product information."""
+    try:
+        # Validate image file
+        if not image.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Read image bytes
+        image_bytes = await image.read()
+        if len(image_bytes) > 10 * 1024 * 1024:  # 10MB limit
+            raise HTTPException(status_code=400, detail="Image too large (max 10MB)")
+        
+        # OCR Service to extract text
+        ocr_service = OCRService(db)
+        
+        # Custom prompt for product scanning
+        product_prompt = """
+        Analyze this image and extract product information. Look for:
+        - Product name
+        - Brand name
+        - Nutritional information (calories, proteins, carbs, fats per 100g)
+        - Weight/volume
+        - Price (if visible)
+        
+        Return the information in a structured format.
+        """
+        
+        # Extract text using OCR
+        ocr_result = await ocr_service.extract_text(
+            image_bytes=image_bytes,
+            user_id=user_id,
+            session_id=f"product_scan_{user_id}",
+            prompt=product_prompt
+        )
+        
+        # Cooking Service to process OCR result and create products
+        cooking_service = CookingProductService(db)
+        
+        # Use AI to parse OCR text and create product
+        # This is a simplified version - in production you'd use more sophisticated parsing
+        extracted_text = ocr_result["text"]
+        
+        # Try to extract product information from OCR text
+        # For now, we'll create a basic product and let user edit it
+        product_create = ProductCreate(
+            name=f"Scanned Product - {extracted_text[:50]}...",
+            category="scanned",
+            unit="szt",
+            price_per_unit=0.0,
+            calories_per_100g=0,
+            proteins=0.0,
+            carbs=0.0,
+            fats=0.0
+        )
+        
+        # Save the scanned product
+        result = await cooking_service.add_product(product_create, user_id)
+        
+        logger.info(f"Product scanned successfully for user {user_id}: {result.name}")
+        
+        return [ProductResponse.from_orm(result)]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to scan product: {e}")
+        raise HTTPException(status_code=500, detail=f"Product scanning failed: {str(e)}")
 
 
 @router.get("/products/search", response_model=List[ProductResponse])
