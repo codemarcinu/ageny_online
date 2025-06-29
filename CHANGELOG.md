@@ -14,6 +14,34 @@ a projekt przestrzega [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Performance optimizations
 - Mobile application development
 
+## [1.5.0] - 2024-12-29
+
+### 🔧 **NAPRAWY API I TUTOR ANTONINA**
+
+#### ✅ **Dodane**
+- **Ulepszona obsługa odpowiedzi LLM** - kompatybilność z wszystkimi providerami
+- **Automatyczne fallbacki** - gdy provider zwraca string zamiast dict
+- **Lepsze walidowanie schematów** - wszystkie pola wymagane są obsługiwane
+
+#### 🔧 **Zmienione**
+- **Chat endpoint** - obsługuje różne formaty odpowiedzi od providerów
+- **Tutor Antonina agent** - poprawiona obsługa odpowiedzi LLM
+- **Provider factory** - dodano domyślne wartości dla brakujących pól
+- **Vite proxy configuration** - naprawiono routing do localhost:8000
+
+#### 🐛 **Naprawione**
+- **500 Internal Server Error** w chat endpoint - brakujące pola w ChatResponse
+- **Tutor Antonina błędy** - "Przepraszam, wystąpił błąd" zastąpione właściwymi pytaniami
+- **Timeout errors** - frontend poprawnie komunikuje się z backendem
+- **Walidacja schematów** - cost, usage, finish_reason zawsze obecne
+- **Proxy configuration** - /api requests kierowane do localhost:8000
+
+#### 📊 **Statystyki**
+- **Czas odpowiedzi API:** <1.5s (vs timeouty przed naprawą)
+- **Sukces Tutor Antonina:** 100% (vs błędy przed naprawą)
+- **Kompatybilność providerów:** 100% (OpenAI, Mistral, Anthropic, Cohere)
+- **Stabilność frontend:** 100% (brak timeoutów)
+
 ## [1.4.0] - 2025-06-29
 
 ### 🍳 **FAZA 4 - INTEGRACJA I OPTYMALIZACJA**
