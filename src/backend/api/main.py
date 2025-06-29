@@ -6,6 +6,7 @@ Główna aplikacja FastAPI z konfiguracją i routingiem z pełną separacją.
 import logging
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional
+import json
 
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,6 +28,10 @@ from backend.api.v2.endpoints.ocr import router as ocr_router
 from backend.api.v2.endpoints.chat import router as chat_router
 # Import Web Search endpoints
 from backend.api.v2.endpoints.web_search import router as web_search_router
+# Import Gamification endpoints
+from backend.api.v2.endpoints.gamification import router as gamification_router
+# Import Profile endpoints
+from backend.api.v2.endpoints.profile import router as profile_router
 
 # Configure logging
 logging.basicConfig(
@@ -273,12 +278,41 @@ async def get_agents() -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def make_teen_friendly(text: str) -> str:
+    """Placeholder for teen-friendly formatting (add emoji, simplify, etc.)."""
+    if not text:
+        return text
+    # Example: add a smiley and make it more casual
+    return text + " 😊"
+
+@app.middleware("http")
+async def teen_friendly_middleware(request: Request, call_next):
+    response = await call_next(request)
+    if "application/json" in response.headers.get("content-type", ""):
+        body = b""
+        async for chunk in response.body_iterator:
+            body += chunk
+        try:
+            data = json.loads(body)
+            if isinstance(data, dict) and "response" in data:
+                data["response"] = make_teen_friendly(data["response"])
+                return JSONResponse(content=data, status_code=response.status_code)
+        except Exception:
+            pass  # fallback to original response
+        return JSONResponse(content=json.loads(body), status_code=response.status_code)
+    return response
+
+
 # Include OCR endpoints
 app.include_router(ocr_router, prefix="/api/v2")
 # Include Chat endpoints
 app.include_router(chat_router, prefix="/api/v2")
 # Include Web Search endpoints
 app.include_router(web_search_router, prefix="/api/v2")
+# Include Gamification endpoints
+app.include_router(gamification_router, prefix="/api/v2")
+# Include Profile endpoints
+app.include_router(profile_router, prefix="/api/v2")
 
 
 @app.exception_handler(Exception)
