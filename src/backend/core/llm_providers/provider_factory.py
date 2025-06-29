@@ -237,6 +237,10 @@ class LLMProviderFactory:
                 if isinstance(result, str):
                     result = {"text": result}
                 result["provider"] = provider_type.value
+                result["model"] = adapted_model or "gpt-4"
+                result["usage"] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                result["cost"] = {"total": 0.0, "prompt": 0.0, "completion": 0.0}
+                result["finish_reason"] = "stop"
                 logger.info(f"Chat completion successful with {provider_type.value}")
                 return result
                 

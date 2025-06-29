@@ -215,6 +215,30 @@ async def chat_completion(request: ChatRequest):
                 # Don't fail the entire request if tutor mode fails
                 result["tutor_question"] = "Przepraszam, wystąpił błąd w trybie tutora. Spróbuj ponownie."
         
+        # Ensure all required fields are present for ChatResponse
+        if isinstance(result, str):
+            # If result is just a string, convert to dict
+            result = {"text": result}
+        
+        # Ensure required fields are present
+        if "text" not in result:
+            result["text"] = str(result)
+        
+        if "model" not in result:
+            result["model"] = request.model or "gpt-4"
+        
+        if "provider" not in result:
+            result["provider"] = "unknown"
+        
+        if "usage" not in result:
+            result["usage"] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        
+        if "cost" not in result:
+            result["cost"] = {"total": 0.0, "prompt": 0.0, "completion": 0.0}
+        
+        if "finish_reason" not in result:
+            result["finish_reason"] = "stop"
+        
         logger.info(f"Chat completion successful in {result['response_time']:.2f}s (web search: {web_search_used}, tutor: {request.tutor_mode})")
         
         return ChatResponse(**result)
@@ -279,15 +303,28 @@ async def tutor_mode(request: TutorRequest):
             )
         
         # Prepare response
+        # Handle different response formats
+        if isinstance(result, str):
+            reply = result
+        elif isinstance(result, dict):
+            if "text" in result:
+                reply = result["text"]
+            elif "choices" in result and len(result["choices"]) > 0:
+                reply = result["choices"][0]["message"]["content"]
+            else:
+                reply = str(result)
+        else:
+            reply = str(result)
+        
         response_data = {
-            "reply": result["choices"][0]["message"]["content"],
+            "reply": reply,
             "tutor_question": guide_result["question"],
             "tutor_feedback": guide_result["feedback"],
-            "model": result.get("model", request.model or "gpt-4"),
-            "provider": result.get("provider", "openai"),
-            "usage": result.get("usage", {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}),
-            "cost": result.get("cost", 0.0),
-            "finish_reason": result.get("finish_reason", "stop"),
+            "model": result.get("model", request.model or "gpt-4") if isinstance(result, dict) else (request.model or "gpt-4"),
+            "provider": result.get("provider", "openai") if isinstance(result, dict) else "openai",
+            "usage": result.get("usage", {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}) if isinstance(result, dict) else {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            "cost": result.get("cost", {"total": 0.0, "prompt": 0.0, "completion": 0.0}) if isinstance(result, dict) else {"total": 0.0, "prompt": 0.0, "completion": 0.0},
+            "finish_reason": result.get("finish_reason", "stop") if isinstance(result, dict) else "stop",
             "response_time": time.time() - start_time
         }
         

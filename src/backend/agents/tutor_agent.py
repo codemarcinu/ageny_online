@@ -87,21 +87,40 @@ class TutorAntonina(BaseAgent):
                 
                 if not provider_type:
                     logger.warning(f"Provider {self.provider} not available, using fallback")
-                    provider = llm_factory.get_default_provider()
+                    result = await llm_factory.chat_with_fallback(
+                        messages=messages,
+                        model=self.model,
+                        temperature=0.2,
+                        max_tokens=400
+                    )
                 else:
                     provider = llm_factory.get_provider(provider_type)
+                    result = await provider.chat(
+                        messages=messages,
+                        model=self.model,
+                        temperature=0.2,
+                        max_tokens=400
+                    )
             else:
-                provider = llm_factory.get_default_provider()
+                result = await llm_factory.chat_with_fallback(
+                    messages=messages,
+                    model=self.model,
+                    temperature=0.2,
+                    max_tokens=400
+                )
             
-            # Wygeneruj odpowiedź
-            result = await provider.chat(
-                messages=messages,
-                model=self.model,
-                temperature=0.2,  # Niska temperatura dla spójności
-                max_tokens=400    # Ograniczone dla zwięzłości
-            )
-            
-            content = result["choices"][0]["message"]["content"].strip()
+            # Handle different response formats
+            if isinstance(result, str):
+                content = result.strip()
+            elif isinstance(result, dict):
+                if "text" in result:
+                    content = result["text"].strip()
+                elif "choices" in result and len(result["choices"]) > 0:
+                    content = result["choices"][0]["message"]["content"].strip()
+                else:
+                    content = str(result).strip()
+            else:
+                content = str(result).strip()
             
             # Analizuj odpowiedź
             if content.startswith("Sugestia:"):
