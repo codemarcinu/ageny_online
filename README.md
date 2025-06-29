@@ -14,7 +14,7 @@ Ageny Online is a scalable, cloud-based AI assistant that leverages external API
 
 ## 🚀 Status: PRODUCTION READY
 
-**Ostatnia aktualizacja:** 2024-12-29  
+**Ostatnia aktualizacja:** 2025-06-29  
 **Testy integracyjne:** ✅ 15/20 (75%)  
 **Status:** Gotowe do produkcji
 
@@ -33,7 +33,7 @@ Ageny Online is a scalable, cloud-based AI assistant that leverages external API
 
 Ageny Online to zaawansowana platforma AI Assistant z wieloma providerami LLM, OCR i vector stores. Projekt jest w pełni funkcjonalny i gotowy do produkcji.
 
-### ✅ Ostatnie naprawy (2024-12-29)
+### ✅ Ostatnie naprawy (2025-06-29)
 
 - **Naprawiono błędy API Chat** - endpointy zwracają poprawne struktury odpowiedzi
 - **Poprawiono Tutor Antonina** - agent edukacyjny działa stabilnie
@@ -260,7 +260,7 @@ Ten projekt jest licencjonowany pod MIT License - zobacz [LICENSE](LICENSE) dla 
 ---
 
 **Status:** ✅ PRODUCTION READY  
-**Ostatnia aktualizacja:** 2024-12-29  
+**Ostatnia aktualizacja:** 2025-06-29  
 **Testy:** 75% przechodzi
 
 ## 📋 Overview

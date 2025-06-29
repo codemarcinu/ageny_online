@@ -14,7 +14,7 @@ a projekt przestrzega [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Performance optimizations
 - Mobile application development
 
-## [1.5.0] - 2024-12-29
+## [1.5.0] - 2025-06-29
 
 ### 🔧 **NAPRAWY API I TUTOR ANTONINA**
 
