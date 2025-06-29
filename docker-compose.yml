@@ -13,16 +13,14 @@ services:
       - ./config:/app/config
       - ./data:/app/data
       - ./logs:/app/logs
+    env_file:
+      - .env.online
     environment:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=sqlite+aiosqlite:///./data/ageny_online.db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - COHERE_API_KEY=${COHERE_API_KEY}
-      - PINECONE_API_KEY=${PINECONE_API_KEY}
       - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
       - AZURE_VISION_ENDPOINT=${AZURE_VISION_ENDPOINT}
       - AZURE_VISION_KEY=${AZURE_VISION_KEY}

@@ -15,15 +15,15 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8004',
+        target: 'http://backend:8000',
         changeOrigin: true,
       },
       '/health': {
-        target: 'http://localhost:8004',
+        target: 'http://backend:8000',
         changeOrigin: true,
       },
       '/docs': {
-        target: 'http://localhost:8004',
+        target: 'http://backend:8000',
         changeOrigin: true,
         secure: false,
       },
