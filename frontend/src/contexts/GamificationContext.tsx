@@ -41,6 +41,7 @@ interface GamificationContextType {
   resetDailyChallenges: () => void
   showConfetti: boolean
   triggerConfetti: () => void
+  checkCookingEnthusiast: () => void
 }
 
 const GamificationContext = createContext<GamificationContextType | undefined>(undefined)
@@ -93,6 +94,71 @@ const INITIAL_ACHIEVEMENTS: Achievement[] = [
     icon: '⭐',
     points: 300,
     unlocked: false
+  },
+  // Osiągnięcia kulinarne
+  {
+    id: 'first-product',
+    name: 'Pierwszy produkt! 🍎',
+    description: 'Dodaj swój pierwszy produkt do bazy',
+    icon: '🍎',
+    points: 75,
+    unlocked: false
+  },
+  {
+    id: 'product-collector',
+    name: 'Kolekcjoner produktów! 🛒',
+    description: 'Dodaj 10 produktów do swojej bazy',
+    icon: '🛒',
+    points: 250,
+    unlocked: false
+  },
+  {
+    id: 'first-recipe',
+    name: 'Pierwszy przepis! 👩‍🍳',
+    description: 'Wygeneruj swój pierwszy przepis',
+    icon: '👩‍🍳',
+    points: 100,
+    unlocked: false
+  },
+  {
+    id: 'recipe-master',
+    name: 'Mistrz przepisów! 📖',
+    description: 'Wygeneruj 5 przepisów',
+    icon: '📖',
+    points: 400,
+    unlocked: false
+  },
+  {
+    id: 'shopping-list-creator',
+    name: 'Organizatorka zakupów! 📝',
+    description: 'Utwórz swoją pierwszą listę zakupów',
+    icon: '📝',
+    points: 80,
+    unlocked: false
+  },
+  {
+    id: 'product-scanner',
+    name: 'Skaner produktów! 📱',
+    description: 'Zeskanuj swój pierwszy produkt',
+    icon: '📱',
+    points: 120,
+    unlocked: false
+  },
+  {
+    id: 'nutrition-expert',
+    name: 'Ekspert od żywienia! 🥗',
+    description: 'Dodaj 5 produktów z pełnymi wartościami odżywczymi',
+    icon: '🥗',
+    points: 300,
+    unlocked: false
+  },
+  {
+    id: 'cooking-enthusiast',
+    name: 'Entuzjastka gotowania! 🍳',
+    description: 'Użyj wszystkich funkcji kulinarnych (produkty, przepisy, lista zakupów)',
+    icon: '🍳',
+    points: 500,
+    unlocked: false
   }
 ]
 
@@ -120,6 +186,39 @@ const DAILY_CHALLENGES: Omit<Challenge, 'progress' | 'completed' | 'expiresAt'>[
     type: 'daily',
     target: 1,
     points: 50
+  },
+  // Wyzwania kulinarne
+  {
+    id: 'daily-add-product',
+    name: 'Dodaj produkt',
+    description: 'Dodaj 1 nowy produkt do bazy',
+    type: 'daily',
+    target: 1,
+    points: 60
+  },
+  {
+    id: 'daily-generate-recipe',
+    name: 'Wygeneruj przepis',
+    description: 'Wygeneruj 1 nowy przepis',
+    type: 'daily',
+    target: 1,
+    points: 80
+  },
+  {
+    id: 'daily-scan-product',
+    name: 'Zeskanuj produkt',
+    description: 'Zeskanuj 1 produkt za pomocą OCR',
+    type: 'daily',
+    target: 1,
+    points: 100
+  },
+  {
+    id: 'daily-shopping-list',
+    name: 'Lista zakupów',
+    description: 'Utwórz 1 listę zakupów',
+    type: 'daily',
+    target: 1,
+    points: 70
   }
 ]
 
@@ -263,6 +362,37 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
     setTimeout(() => setShowConfetti(false), 100)
   }
 
+  const checkCookingEnthusiast = () => {
+    setState(prev => {
+      const hasFirstProduct = prev.achievements.find(a => a.id === 'first-product')?.unlocked
+      const hasFirstRecipe = prev.achievements.find(a => a.id === 'first-recipe')?.unlocked
+      const hasShoppingList = prev.achievements.find(a => a.id === 'shopping-list-creator')?.unlocked
+      
+      const cookingEnthusiast = prev.achievements.find(a => a.id === 'cooking-enthusiast')
+      
+      // Sprawdź czy wszystkie podstawowe funkcje kulinarne zostały użyte
+      if (hasFirstProduct && hasFirstRecipe && hasShoppingList && !cookingEnthusiast?.unlocked) {
+        const updatedAchievements = prev.achievements.map(a =>
+          a.id === 'cooking-enthusiast'
+            ? { ...a, unlocked: true, unlockedAt: new Date() }
+            : a
+        )
+        
+        // Trigger confetti for major achievement
+        triggerConfetti()
+        
+        return {
+          ...prev,
+          achievements: updatedAchievements,
+          points: prev.points + 500, // Bonus points for cooking enthusiast
+          experience: prev.experience + 500
+        }
+      }
+      
+      return prev
+    })
+  }
+
   return (
     <GamificationContext.Provider
       value={{
@@ -273,7 +403,8 @@ export function GamificationProvider({ children }: { children: React.ReactNode }
         getLevelProgress,
         resetDailyChallenges,
         showConfetti,
-        triggerConfetti
+        triggerConfetti,
+        checkCookingEnthusiast
       }}
     >
       {children}
