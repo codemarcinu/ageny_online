@@ -7,6 +7,8 @@ import re
 
 from backend.core.llm_providers.provider_factory import provider_factory as llm_factory
 from backend.api.v2.endpoints.web_search import WebSearchRequest, search_providers
+from backend.schemas.tutor import TutorRequest, TutorResponse
+from backend.agents.tutor_agent import TutorAntonina
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,7 @@ class ChatRequest(BaseModel):
     provider: Optional[str] = Field(None, description="Specific provider to use")
     stream: bool = Field(False, description="Whether to stream the response")
     enable_web_search: bool = Field(True, description="Whether to enable web search for current information")
+    tutor_mode: bool = Field(False, description="Włącz tryb Tutor Antoniny")
 
 class ChatResponse(BaseModel):
     """Chat completion response model."""
@@ -38,6 +41,8 @@ class ChatResponse(BaseModel):
     response_time: float
     web_search_used: bool = False
     web_search_results: Optional[List[Dict[str, Any]]] = None
+    tutor_question: Optional[str] = Field(None, description="Pytanie doprecyzowujące od tutora")
+    tutor_feedback: Optional[str] = Field(None, description="Sugestia i ulepszony prompt od tutora")
 
 class EmbedRequest(BaseModel):
     """Embedding request model."""
@@ -181,7 +186,36 @@ async def chat_completion(request: ChatRequest):
         result["web_search_used"] = web_search_used
         result["web_search_results"] = web_search_results
         
-        logger.info(f"Chat completion successful in {result['response_time']:.2f}s (web search: {web_search_used})")
+        # Initialize tutor fields
+        result["tutor_question"] = None
+        result["tutor_feedback"] = None
+        
+        # Handle Tutor Antonina mode
+        if request.tutor_mode:
+            try:
+                logger.info("Tutor mode enabled - analyzing prompt with Tutor Antonina")
+                
+                # Create tutor agent
+                tutor = TutorAntonina(model=request.model, provider=request.provider)
+                
+                # Get chat history for context
+                chat_history = [{"role": msg.role, "content": msg.content} for msg in request.messages[:-1]]
+                
+                # Analyze the last prompt
+                guide_result = await tutor.guide(last_message, chat_history)
+                
+                # Add tutor results to response
+                result["tutor_question"] = guide_result["question"]
+                result["tutor_feedback"] = guide_result["feedback"]
+                
+                logger.info(f"Tutor analysis completed - question: {bool(guide_result['question'])}, feedback: {bool(guide_result['feedback'])}")
+                
+            except Exception as e:
+                logger.error(f"Tutor mode error: {e}")
+                # Don't fail the entire request if tutor mode fails
+                result["tutor_question"] = "Przepraszam, wystąpił błąd w trybie tutora. Spróbuj ponownie."
+        
+        logger.info(f"Chat completion successful in {result['response_time']:.2f}s (web search: {web_search_used}, tutor: {request.tutor_mode})")
         
         return ChatResponse(**result)
         
@@ -192,6 +226,82 @@ async def chat_completion(request: ChatRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Chat completion failed: {str(e)}"
+        )
+
+@router.post("/tutor", response_model=TutorResponse)
+async def tutor_mode(request: TutorRequest):
+    """
+    Dedicated endpoint for Tutor Antonina mode.
+    Analyzes prompts and provides educational feedback.
+    """
+    start_time = time.time()
+    
+    try:
+        # Validate messages
+        if not request.messages:
+            raise HTTPException(status_code=400, detail="At least one message is required")
+        
+        last_message = request.messages[-1].content
+        
+        # Create tutor agent
+        tutor = TutorAntonina(model=request.model, provider=request.provider)
+        
+        # Get chat history for context
+        chat_history = [{"role": msg.role, "content": msg.content} for msg in request.messages[:-1]]
+        
+        # Analyze the prompt
+        guide_result = await tutor.guide(last_message, chat_history)
+        
+        # Generate standard AI response
+        if request.provider:
+            provider_type = None
+            for pt in llm_factory.get_available_providers():
+                if pt.value == request.provider:
+                    provider_type = pt
+                    break
+            
+            if not provider_type:
+                raise HTTPException(status_code=400, detail=f"Provider {request.provider} not available")
+            
+            provider = llm_factory.get_provider(provider_type)
+            result = await provider.chat(
+                messages=[{"role": msg.role, "content": msg.content} for msg in request.messages],
+                model=request.model,
+                temperature=0.7,
+                max_tokens=1000
+            )
+        else:
+            result = await llm_factory.chat_with_fallback(
+                messages=[{"role": msg.role, "content": msg.content} for msg in request.messages],
+                model=request.model,
+                temperature=0.7,
+                max_tokens=1000
+            )
+        
+        # Prepare response
+        response_data = {
+            "reply": result["choices"][0]["message"]["content"],
+            "tutor_question": guide_result["question"],
+            "tutor_feedback": guide_result["feedback"],
+            "model": result.get("model", request.model or "gpt-4"),
+            "provider": result.get("provider", "openai"),
+            "usage": result.get("usage", {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}),
+            "cost": result.get("cost", 0.0),
+            "finish_reason": result.get("finish_reason", "stop"),
+            "response_time": time.time() - start_time
+        }
+        
+        logger.info(f"Tutor mode completed in {response_data['response_time']:.2f}s")
+        
+        return TutorResponse(**response_data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Tutor mode error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Tutor mode failed: {str(e)}"
         )
 
 @router.post("/completion", response_model=ChatResponse)

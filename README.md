@@ -50,6 +50,13 @@ Ageny Online to zaawansowana platforma AI Assistant z wieloma providerami LLM, O
 - **Batch processing:** `/api/v2/chat/batch`
 - **Embeddings:** `/api/v2/chat/embed`
 
+### 🎓 Tutor Antonina (Nowe!)
+- **Edukacyjny tryb:** Pomaga tworzyć skuteczne prompty
+- **6-elementowa analiza:** Kontekst, Instrukcja, Ograniczenia, Format, Przykłady, System prompt
+- **Iteracyjne prowadzenie:** Pytania doprecyzowujące → korekta → sugestia
+- **Dedykowany endpoint:** `/api/v2/chat/tutor`
+- **Gamifikacja:** Bonusowe punkty i osiągnięcia za naukę prompt engineeringu
+
 ### 📷 OCR (Optical Character Recognition)
 - **Multi-provider support:** Mistral Vision, Azure Vision, Google Vision
 - **Text extraction:** `/api/v2/ocr/extract`
@@ -116,6 +123,7 @@ docker-compose -f docker-compose.minimal.yaml up -d
 - `POST /api/v2/chat/chat` - Chat completion
 - `POST /api/v2/chat/batch` - Batch chat
 - `POST /api/v2/chat/embed` - Embeddings
+- `POST /api/v2/chat/tutor` - Tutor Antonina mode
 
 ### OCR
 - `POST /api/v2/ocr/extract` - Text extraction

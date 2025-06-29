@@ -8,6 +8,7 @@ from .conversation import ConversationCreate, ConversationUpdate, ConversationRe
 from .message import MessageCreate, MessageResponse
 from .ocr import OCRRequest, OCRResponse, OCRBatchResponse
 from .cost import CostRecordCreate, CostRecordResponse
+from .tutor import TutorRequest, TutorResponse
 
 __all__ = [
     "UserCreate",
@@ -22,5 +23,7 @@ __all__ = [
     "OCRResponse",
     "OCRBatchResponse",
     "CostRecordCreate",
-    "CostRecordResponse"
+    "CostRecordResponse",
+    "TutorRequest",
+    "TutorResponse"
 ] 

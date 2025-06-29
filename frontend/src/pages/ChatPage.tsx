@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Loader2, Globe, ExternalLink, Sparkles } from 'lucide-react'
+import { Send, Bot, User, Loader2, Globe, ExternalLink, Sparkles, GraduationCap } from 'lucide-react'
 import { useApi } from '../contexts/ApiContext'
 import { useGamification } from '../contexts/GamificationContext'
+import { TutorHints } from '../components/TutorHints'
 import toast from 'react-hot-toast'
 
 interface Message {
@@ -16,6 +17,8 @@ interface Message {
     snippet: string
     source: string
   }>
+  tutorQuestion?: string
+  tutorFeedback?: string
 }
 
 export default function ChatPage() {
@@ -25,6 +28,7 @@ export default function ChatPage() {
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [enableWebSearch, setEnableWebSearch] = useState(true)
+  const [tutorMode, setTutorMode] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -58,6 +62,7 @@ export default function ChatPage() {
         temperature: 0.7,
         max_tokens: 1000,
         enable_web_search: enableWebSearch,
+        tutor_mode: tutorMode,
       })
 
       const assistantMessage: Message = {
@@ -67,6 +72,8 @@ export default function ChatPage() {
         timestamp: new Date(),
         webSearchUsed: response.data.web_search_used,
         webSearchResults: response.data.web_search_results,
+        tutorQuestion: response.data.tutor_question,
+        tutorFeedback: response.data.tutor_feedback,
       }
 
       setMessages(prev => [...prev, assistantMessage])
@@ -90,8 +97,21 @@ export default function ChatPage() {
       // Update daily challenge progress
       updateChallengeProgress('daily-chat-3', Math.ceil(newMessageCount / 2))
       
+      // Tutor mode achievements
+      if (tutorMode) {
+        addPoints(15) // Bonus points for tutor mode
+        updateChallengeProgress('daily-tutor-5', 1)
+        
+        if (response.data.tutor_feedback) {
+          unlockAchievement('prompt-master')
+          toast.success('🎓 Osiągnięcie odblokowane: Mistrz Promptów!')
+        }
+      }
+      
       if (response.data.web_search_used) {
         toast.success('✨ Odpowiedź z aktualnymi informacjami z internetu!')
+      } else if (tutorMode) {
+        toast.success('🎓 Odpowiedź z trybu Tutor Antoniny!')
       } else {
         toast.success('💬 Odpowiedź otrzymana!')
       }
@@ -168,6 +188,18 @@ export default function ChatPage() {
               />
               <span className="text-teen-purple-700">Wyszukiwanie w internecie</span>
             </label>
+            <label className="flex items-center space-x-2 text-sm">
+              <input
+                type="checkbox"
+                checked={tutorMode}
+                onChange={(e) => setTutorMode(e.target.checked)}
+                className="rounded border-teen-purple-300 text-teen-purple-600 focus:ring-teen-purple-500"
+              />
+              <span className="text-teen-purple-700 flex items-center">
+                <GraduationCap className="w-4 h-4 mr-1" />
+                Tutor Antonina
+              </span>
+            </label>
             <div className="text-sm text-teen-purple-500 bg-teen-purple-50 px-3 py-1 rounded-full">
               {messages.length} wiadomości
             </div>
@@ -184,6 +216,11 @@ export default function ChatPage() {
               {enableWebSearch && (
                 <p className="text-xs mt-3 text-teen-purple-400 bg-teen-purple-50 px-3 py-2 rounded-lg">
                   🌐 Wyszukiwanie w internecie jest włączone - AI będzie mogło korzystać z aktualnych informacji
+                </p>
+              )}
+              {tutorMode && (
+                <p className="text-xs mt-3 text-teen-purple-400 bg-teen-purple-50 px-3 py-2 rounded-lg">
+                  🎓 Tryb Tutor Antoniny jest włączony - naucz się tworzyć skuteczne prompty!
                 </p>
               )}
             </div>
@@ -225,6 +262,12 @@ export default function ChatPage() {
                       </div>
                       {message.webSearchResults && message.webSearchResults.length > 0 && (
                         renderWebSearchResults(message.webSearchResults)
+                      )}
+                      {(message.tutorQuestion || message.tutorFeedback) && (
+                        <TutorHints 
+                          question={message.tutorQuestion}
+                          feedback={message.tutorFeedback}
+                        />
                       )}
                     </div>
                     <div className="text-xs text-teen-purple-500 mt-1">
