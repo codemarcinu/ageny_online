@@ -27,8 +27,8 @@ class OCRResult(Base):
     prompt_used = Column(Text, nullable=True)
     meta_data = Column(JSON, nullable=True)
     
-    # Relationships - using full module paths to prevent conflicts
-    user = relationship("src.backend.models.user.User")
+    # Relationships - using class names only
+    user = relationship("User", back_populates="ocr_results")
     
     def __repr__(self) -> str:
         """String representation for debugging."""

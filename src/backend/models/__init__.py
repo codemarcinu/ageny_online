@@ -8,6 +8,9 @@ from .user import User
 from .conversation import Conversation, Message
 from .ocr_result import OCRResult
 from .cost_tracking import CostRecord
+from .product import Product
+from .recipe import Recipe
+from .shopping_list import ShoppingList
 
 __all__ = [
     "Base",
@@ -15,5 +18,8 @@ __all__ = [
     "Conversation",
     "Message",
     "OCRResult",
-    "CostRecord"
+    "CostRecord",
+    "Product",
+    "Recipe",
+    "ShoppingList"
 ] 

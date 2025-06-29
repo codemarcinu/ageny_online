@@ -37,6 +37,8 @@ from backend.api.v2.endpoints.gamification import router as gamification_router
 from backend.api.v2.endpoints.profile import router as profile_router
 # Import Vector Store endpoints
 from backend.api.v2.endpoints.vector_store import router as vector_store_router
+# Import Cooking endpoints
+from backend.api.v2.endpoints.cooking import router as cooking_router
 
 # Create logs directory if it doesn't exist
 log_dir = Path("logs")
@@ -412,6 +414,8 @@ app.include_router(gamification_router, prefix="/api/v2")
 app.include_router(profile_router, prefix="/api/v2")
 # Include Vector Store endpoints
 app.include_router(vector_store_router, prefix="/api/v2")
+# Include Cooking endpoints
+app.include_router(cooking_router, prefix="/api/v2")
 
 
 @app.exception_handler(Exception)

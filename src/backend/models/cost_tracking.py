@@ -1,32 +1,34 @@
 """
-Cost tracking model for Ageny Online.
+Cost Tracking model for Ageny Online.
 Zapewnia model śledzenia kosztów z pełną separacją.
 """
 
-from sqlalchemy import Column, String, Integer, Float, JSON, ForeignKey, Date
+from sqlalchemy import Column, String, Integer, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
+from datetime import datetime
 
 from .base import Base
 
 
 class CostRecord(Base):
-    """Cost tracking model for monitoring API usage costs."""
+    """Cost Record model for tracking API usage costs."""
     
     __tablename__ = "cost_records"
     
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    date = Column(Date, nullable=False, index=True)
-    provider = Column(String(50), nullable=False)
-    service_type = Column(String(50), nullable=False)  # chat, ocr, embedding, etc.
+    session_id = Column(String(100), nullable=False)
+    provider_type = Column(String(50), nullable=False)  # llm, ocr, vector_store
+    provider_name = Column(String(50), nullable=False)  # openai, mistral, etc.
     model_used = Column(String(100), nullable=True)
     tokens_used = Column(Integer, nullable=True)
-    cost = Column(String(20), nullable=False)  # Store as string to avoid precision issues
-    request_count = Column(Integer, default=1, nullable=False)
-    meta_data = Column(JSON, nullable=True)
+    cost_usd = Column(Float, nullable=False, default=0.0)
+    request_type = Column(String(50), nullable=False)  # chat, completion, embedding, etc.
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    meta_data = Column(String(500), nullable=True)  # Additional info as JSON string
     
-    # Relationships - using full module paths to prevent conflicts
-    user = relationship("src.backend.models.user.User")
+    # Relationships - using class names only
+    user = relationship("User", back_populates="cost_records")
     
     def __repr__(self) -> str:
         """String representation for debugging."""
-        return f"<CostRecord(id={self.id}, provider='{self.provider}', cost='{self.cost}', date={self.date})>" 
+        return f"<CostRecord(id={self.id}, provider='{self.provider_name}', cost=${self.cost_usd})>" 

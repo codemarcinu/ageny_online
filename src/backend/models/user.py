@@ -3,7 +3,7 @@ User model for Ageny Online.
 Zapewnia model użytkownika z pełną separacją.
 """
 
-from sqlalchemy import Column, String, Boolean, Text
+from sqlalchemy import Column, String, Boolean, Text, Integer
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -25,6 +25,37 @@ class User(Base):
     # Relationships - using class names only
     conversations = relationship(
         "Conversation",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    
+    ocr_results = relationship(
+        "OCRResult",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    
+    cost_records = relationship(
+        "CostRecord",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    
+    # Cooking features relationships
+    products = relationship(
+        "Product",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    
+    recipes = relationship(
+        "Recipe",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    
+    shopping_lists = relationship(
+        "ShoppingList",
         back_populates="user",
         cascade="all, delete-orphan"
     )
