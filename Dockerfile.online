@@ -22,15 +22,15 @@ RUN pip install poetry
 # Configure Poetry
 RUN poetry config virtualenvs.create false
 
+# Copy application code first
+COPY src/ ./src/
+COPY config/ ./config/
+
 # Copy poetry files
 COPY pyproject.toml poetry.lock* ./
 
 # Install Python dependencies
-RUN poetry install --no-dev --no-interaction --no-ansi
-
-# Copy application code
-COPY src/ ./src/
-COPY config/ ./config/
+RUN poetry install --only=main --no-interaction --no-ansi
 
 # Create necessary directories
 RUN mkdir -p /app/data /app/logs /app/config

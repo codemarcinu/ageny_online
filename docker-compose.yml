@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.online
+    container_name: ageny-online-backend-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=sqlite+aiosqlite:///./data/ageny_online.db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - COHERE_API_KEY=${COHERE_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - AZURE_VISION_ENDPOINT=${AZURE_VISION_ENDPOINT}
+      - AZURE_VISION_KEY=${AZURE_VISION_KEY}
+      - GOOGLE_VISION_CREDENTIALS_PATH=${GOOGLE_VISION_CREDENTIALS_PATH}
+      - GOOGLE_VISION_PROJECT_ID=${GOOGLE_VISION_PROJECT_ID}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+    depends_on:
+      - redis
+    command: poetry run uvicorn src.backend.api.main:app --reload --host 0.0.0.0 --port 8000
+    networks:
+      - ageny-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: ageny-online-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ageny-network
+    command: redis-server --appendonly yes
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: ageny-online-frontend-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+    working_dir: /app
+    networks:
+      - ageny-network
+    depends_on:
+      - backend
+
+networks:
+  ageny-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local 
