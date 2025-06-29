@@ -789,6 +789,10 @@ Przejście z lokalnych modeli Ollama na API zewnętrzne to strategiczna decyzja,
 3. **Zwiększa dostępność** - działa na każdym urządzeniu
 4. **Przyspiesza development** - szybszy time-to-market
 5. **Zapewnia skalowalność** - automatyczne skalowanie
+<<<<<<< HEAD
+=======
+
+>>>>>>> a463137dff6b658dad51c7d310168bb946660cf8
 **Szacowany czas wdrożenia:** 4 tygodnie  
 **Szacowany koszt wdrożenia:** $1000-2000  
 **Oszczędności roczne:** $5000+ (infrastruktura)  
@@ -799,4 +803,7 @@ Przejście z lokalnych modeli Ollama na API zewnętrzne to strategiczna decyzja,
 **📞 Kontakt:** [Dane kontaktowe]  
 **📧 Email:** [Email]  
 **🔗 Repozytorium:** https://github.com/codemarcinu/ageny_online.git
+<<<<<<< HEAD
 skup się n
+=======
+>>>>>>> a463137dff6b658dad51c7d310168bb946660cf8
