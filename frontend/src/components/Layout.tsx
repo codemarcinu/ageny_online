@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { MessageSquare, FileText, Server, Activity, Home, Search, Sparkles } from 'lucide-react'
+import { MessageSquare, FileText, Server, Activity, Home, Search, Sparkles, ChefHat } from 'lucide-react'
 import { useHealth } from '../contexts/HealthContext'
 import { useGamification } from '../contexts/GamificationContext'
 
@@ -16,6 +16,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Chat', href: '/chat', icon: MessageSquare },
+    { name: 'Kuchnia', href: '/cooking', icon: ChefHat },
     { name: 'OCR', href: '/ocr', icon: FileText },
     { name: 'Web Search', href: '/web-search', icon: Search },
     { name: 'Providers', href: '/providers', icon: Server },

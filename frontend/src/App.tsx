@@ -6,6 +6,7 @@ import OCRPage from './pages/OCRPage'
 import ProvidersPage from './pages/ProvidersPage'
 import WebSearchPage from './pages/WebSearchPage'
 import TeenDashboard from './pages/TeenDashboard'
+import CookingPage from './pages/CookingPage'
 import ConfettiAnimation from './components/gamification/ConfettiAnimation'
 import { ApiProvider } from './contexts/ApiContext'
 import { HealthProvider } from './contexts/HealthContext'
@@ -45,6 +46,7 @@ function AppContent() {
           <Route path="/ocr" element={<OCRPage />} />
           <Route path="/providers" element={<ProvidersPage />} />
           <Route path="/web-search" element={<WebSearchPage />} />
+          <Route path="/cooking" element={<CookingPage />} />
         </Routes>
       </Layout>
       <ConfettiAnimation isVisible={showConfetti} />
