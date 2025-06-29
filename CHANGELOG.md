@@ -14,24 +14,127 @@ a projekt przestrzega [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Performance optimizations
 - Mobile application development
 
-## [1.0.0] - 2024-06-29
+## [1.4.0] - 2025-06-29
 
-### Added
-- **Multi-Provider LLM Integration**: Support for OpenAI GPT-4, Anthropic Claude, Cohere, and Mistral AI
-- **Advanced OCR Capabilities**: Integration with Mistral Vision, Azure Vision, and Google Vision
-- **Vector Search**: Pinecone and Weaviate integration for semantic search
-- **Web Search**: Real-time internet search capabilities
-- **Cost Tracking**: Real-time usage monitoring and budget management
-- **Docker Deployment**: Easy deployment with Docker Compose
-- **Modern React Frontend**: Beautiful, responsive web interface
-- **Real-time Chat**: Interactive AI conversations
-- **File Upload**: Easy document and image processing
-- **Provider Management**: Visual provider status and configuration
-- **Cost Dashboard**: Real-time cost monitoring and alerts
-- **Comprehensive Documentation**: API reference, guides, and tutorials
-- **Community Guidelines**: Standards and best practices
-- **Roadmap**: Future development plans
-- **Release Notes**: Detailed version information
+### 🍳 **FAZA 4 - INTEGRACJA I OPTYMALIZACJA**
+
+#### ✅ **Dodane**
+- **Integracja OCR z Kuchnią:**
+  - Skanowanie produktów za pomocą AI
+  - Custom prompt do ekstrakcji informacji o produktach
+  - Walidacja plików (typ, rozmiar max 10MB)
+  - Automatyczne tworzenie produktów z OCR
+  - Endpoint `POST /api/v2/cooking/products/scan`
+
+- **Rozszerzona Gamifikacja Kulinarna:**
+  - 8 nowych osiągnięć kulinarnych:
+    - `first-product` - Pierwszy produkt! 🍎 (+75 pkt)
+    - `product-collector` - Kolekcjoner produktów! 🛒 (+250 pkt)
+    - `first-recipe` - Pierwszy przepis! 👩‍🍳 (+100 pkt)
+    - `recipe-master` - Mistrz przepisów! 📖 (+400 pkt)
+    - `shopping-list-creator` - Organizatorka zakupów! 📝 (+80 pkt)
+    - `product-scanner` - Skaner produktów! 📱 (+120 pkt)
+    - `nutrition-expert` - Ekspert od żywienia! 🥗 (+300 pkt)
+    - `cooking-enthusiast` - Entuzjastka gotowania! 🍳 (+500 pkt)
+  
+  - 4 nowe codzienne wyzwania kulinarne:
+    - `daily-add-product` - Dodaj produkt (+60 pkt)
+    - `daily-generate-recipe` - Wygeneruj przepis (+80 pkt)
+    - `daily-scan-product` - Zeskanuj produkt (+100 pkt)
+    - `daily-shopping-list` - Lista zakupów (+70 pkt)
+
+- **Automatyczne Odblokowywanie Osiągnięć:**
+  - Inteligentne sprawdzanie warunków osiągnięć
+  - Automatyczne odblokowanie "Cooking Enthusiast"
+  - Confetti animacje dla ważnych osiągnięć
+
+- **Optymalizacje Techniczne:**
+  - Pełna integracja z istniejącym systemem OCR
+  - Lepsze zarządzanie błędami skanowania
+  - Optymalizacja przetwarzania obrazów
+  - Responsywność na urządzeniach mobilnych
+
+#### 🔧 **Zmienione**
+- Zaktualizowano konfigurację Vite proxy na port 8004
+- Poprawiono obsługę błędów w komponentach kulinarnych
+- Dodano loading states dla operacji OCR
+- Zoptymalizowano TypeScript typy
+
+#### 🐛 **Naprawione**
+- Błędy TypeScript w komponentach kulinarnych
+- Problemy z importami w GamificationContext
+- Błędy walidacji plików w OCR
+- Problemy z proxy w Vite
+
+#### 📊 **Statystyki**
+- **Punkty za skanowanie produktu:** +8 punktów
+- **Bonus za główne osiągnięcie:** +500 punktów
+- **Łącznie nowych osiągnięć:** 8 kulinarnych + 4 wyzwania
+- **Nowe endpointy:** 1 (scan products)
+
+## [1.3.0] - 2025-06-29
+
+### 🍳 **FAZA 3 - FRONTEND KULINARNY**
+
+#### ✅ **Dodane**
+- **Kompletny Frontend Kulinarny:**
+  - `ProductsSection` - CRUD produktów spożywczych
+  - `RecipesSection` - Generowanie przepisów AI
+  - `ShoppingListSection` - Zarządzanie listami zakupów
+  - Integracja z backendem `/api/v2/cooking/`
+  - Gamifikacja kulinarna (+5/+10 punktów za akcje)
+
+- **Nowoczesny UI:**
+  - Stylizacja Tailwind CSS
+  - Ikony Lucide React
+  - Gradienty teen-friendly
+  - Responsywny design
+
+#### 🔧 **Zmienione**
+- Naprawiono błędy TypeScript
+- Dodano metodę `chat_with_fallback` do provider_factory
+- Poprawiono wywołania funkcji gamifikacji
+
+## [1.2.0] - 2025-06-29
+
+### 🍳 **FAZA 2 - BACKEND KULINARNY**
+
+#### ✅ **Dodane**
+- **Kompletny Backend Kulinarny:**
+  - Modele: Product, Recipe, ShoppingList
+  - Serwisy: CookingProductService, CookingRecipeService, CookingShoppingListService
+  - Endpointy: `/api/v2/cooking/`
+  - Integracja z AI dla generowania przepisów
+
+- **Baza Danych:**
+  - Tabele kulinarne z relacjami
+  - Migracje i seed data
+  - Obsługa wartości odżywczych
+
+## [1.1.0] - 2025-06-29
+
+### 🎮 **FAZA 1 - GAMIFIKACJA**
+
+#### ✅ **Dodane**
+- **System Gamifikacji:**
+  - Punkty i poziomy
+  - Osiągnięcia i wyzwania
+  - Confetti animacje
+  - Kontekst React dla gamifikacji
+
+## [1.0.0] - 2025-06-29
+
+### 🚀 **POCZĄTKOWA WERSJA**
+
+#### ✅ **Dodane**
+- **Podstawowa Aplikacja:**
+  - FastAPI backend
+  - React frontend
+  - OCR integration
+  - AI providers (OpenAI, Anthropic, Mistral, Cohere)
+  - Baza danych PostgreSQL
+  - System autoryzacji
+  - Podstawowe endpointy
 
 ### Changed
 - **Architecture**: Microservices architecture with provider factory pattern

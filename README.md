@@ -609,3 +609,212 @@ Use conventional commits:
 - `fix:` - bug fix
 - `docs:` - documentation changes
 - `test:`
+
+# 🍳 **Kuchnia Antoniny - AI Cooking Assistant**
+## Inteligentny Asystent Kulinarny z OCR i Gamifikacją
+
+---
+
+## 🚀 **NAJNOWSZE AKTUALIZACJE - FAZA 4**
+
+### ✅ **ZREALIZOWANE FUNKCJONALNOŚCI**
+
+#### **🔍 Integracja OCR z Kuchnią**
+- **Skanowanie produktów:** Zeskanuj zdjęcie produktu i automatycznie dodaj do bazy
+- **AI Prompt:** Specjalizowany prompt do ekstrakcji informacji o produktach
+- **Walidacja:** Sprawdzanie typu pliku i rozmiaru (max 10MB)
+- **Automatyczne tworzenie:** Produkt jest automatycznie dodawany do bazy
+
+#### **🎮 Rozszerzona Gamifikacja Kulinarna**
+- **8 nowych osiągnięć kulinarnych:** Od "Pierwszy produkt" do "Entuzjastka gotowania"
+- **4 codzienne wyzwania kulinarne:** Dodaj produkt, wygeneruj przepis, zeskanuj produkt, utwórz listę zakupów
+- **Automatyczne odblokowywanie:** Inteligentne sprawdzanie warunków osiągnięć
+- **Bonus points:** +8 punktów za skanowanie produktu, +500 za główne osiągnięcie
+
+#### **🔧 Optymalizacje Techniczne**
+- **Pełna integracja OCR:** Z istniejącym systemem OCR
+- **Error Handling:** Obsługa błędów skanowania i walidacji
+- **Performance:** Optymalizacja przetwarzania obrazów
+- **Responsive Design:** Optymalizacja dla urządzeń mobilnych
+
+---
+
+## 📋 **FUNKCJONALNOŚCI**
+
+### 🍎 **Zarządzanie Produktami**
+- **Dodawanie produktów:** Ręczne dodawanie z wartościami odżywczymi
+- **Skanowanie OCR:** Automatyczne dodawanie przez skanowanie zdjęć
+- **Kategorie:** Organizacja produktów według kategorii
+- **Wartości odżywcze:** Kalorie, białko, węglowodany, tłuszcze
+- **Ceny:** Śledzenie cen produktów
+
+### 👩‍🍳 **Generowanie Przepisów AI**
+- **AI-powered:** Generowanie przepisów na podstawie dostępnych składników
+- **Preferencje:** Uwzględnianie preferencji kulinarnych
+- **Instrukcje:** Szczegółowe instrukcje przygotowania
+- **Wartości odżywcze:** Informacje o kaloriach na porcję
+- **Zapisywanie:** Automatyczne zapisywanie wygenerowanych przepisów
+
+### 📝 **Listy Zakupów**
+- **Tworzenie list:** Na podstawie przepisów lub ręcznie
+- **Optymalizacja:** AI-optymalizacja list pod kątem budżetu
+- **Koszty:** Szacowanie kosztów zakupów
+- **Status:** Oznaczanie jako zakończone
+- **Historia:** Przechowywanie historii list
+
+### 🎮 **Gamifikacja**
+- **Punkty:** Zdobywanie punktów za akcje kulinarne
+- **Poziomy:** System poziomów z doświadczeniem
+- **Osiągnięcia:** 8 specjalnych osiągnięć kulinarnych
+- **Wyzwania:** Codzienne wyzwania kulinarne
+- **Confetti:** Animacje przy odblokowywaniu osiągnięć
+
+---
+
+## 🛠️ **TECHNOLOGIE**
+
+### **Backend**
+- **FastAPI:** Nowoczesny framework Python
+- **SQLAlchemy:** ORM dla bazy danych
+- **PostgreSQL:** Baza danych
+- **OCR Integration:** Integracja z systemem OCR
+- **AI Providers:** OpenAI, Anthropic, Mistral, Cohere
+
+### **Frontend**
+- **React 18:** Nowoczesny framework JavaScript
+- **TypeScript:** Typowanie statyczne
+- **Tailwind CSS:** Utility-first CSS framework
+- **Vite:** Szybki bundler
+- **Lucide Icons:** Nowoczesne ikony
+
+### **AI & OCR**
+- **OpenAI GPT:** Generowanie przepisów
+- **Mistral Vision:** Skanowanie produktów
+- **Azure Vision:** Alternatywny OCR
+- **Google Vision:** Dodatkowy OCR
+
+---
+
+## 🚀 **INSTALACJA I URUCHOMIENIE**
+
+### **Wymagania**
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL
+- API keys dla AI providers
+
+### **Backend**
+```bash
+# Klonowanie repozytorium
+git clone <repository-url>
+cd appassistant
+
+# Instalacja zależności
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# lub
+venv\Scripts\activate  # Windows
+
+pip install -r requirements.txt
+
+# Konfiguracja środowiska
+cp env.example .env
+# Edytuj .env z kluczami API
+
+# Uruchomienie
+python -m uvicorn src.backend.api.main:app --host 0.0.0.0 --port 8004 --reload
+```
+
+### **Frontend**
+```bash
+cd frontend
+
+# Instalacja zależności
+npm install
+
+# Uruchomienie
+npm run dev
+```
+
+### **Dostęp**
+- **Frontend:** http://localhost:3002
+- **Backend API:** http://localhost:8004
+- **API Docs:** http://localhost:8004/docs
+
+---
+
+## 📊 **STATYSTYKI GAMIFIKACJI**
+
+### **Punkty za Akcje**
+- **Dodanie produktu:** +5 punktów
+- **Skanowanie produktu:** +8 punktów
+- **Generowanie przepisu:** +10 punktów
+- **Tworzenie listy zakupów:** +5 punktów
+
+### **Osiągnięcia Kulinarne**
+- **Łatwe:** first-product, shopping-list-creator (75-80 pkt)
+- **Średnie:** product-scanner, nutrition-expert (120-300 pkt)
+- **Trudne:** cooking-enthusiast, recipe-master (400-500 pkt)
+
+---
+
+## 🧪 **TESTY**
+
+### **Backend**
+```bash
+# Testy jednostkowe
+pytest tests/unit/
+
+# Testy integracyjne
+pytest tests/integration/
+
+# Wszystkie testy
+pytest
+```
+
+### **Frontend**
+```bash
+cd frontend
+npm test
+```
+
+---
+
+## 📝 **DOKUMENTACJA API**
+
+### **Główne Endpointy**
+- `GET /health` - Status aplikacji
+- `POST /api/v2/cooking/products/add` - Dodaj produkt
+- `POST /api/v2/cooking/products/scan` - Skanuj produkt OCR
+- `POST /api/v2/cooking/recipes/generate` - Generuj przepis
+- `POST /api/v2/cooking/shopping/create` - Utwórz listę zakupów
+
+### **Pełna dokumentacja**
+- Swagger UI: http://localhost:8004/docs
+- ReDoc: http://localhost:8004/redoc
+
+---
+
+## 🤝 **KONTYBUOWANIE**
+
+1. Fork repozytorium
+2. Utwórz branch feature (`git checkout -b feature/amazing-feature`)
+3. Commit zmiany (`git commit -m 'Add amazing feature'`)
+4. Push do branch (`git push origin feature/amazing-feature`)
+5. Otwórz Pull Request
+
+---
+
+## 📄 **LICENCJA**
+
+Ten projekt jest licencjonowany pod MIT License - zobacz plik [LICENSE](LICENSE) dla szczegółów.
+
+---
+
+## 🎉 **PODZIĘKOWANIA**
+
+Dziękujemy wszystkim kontrybutorom, którzy pomogli w rozwoju **Kuchni Antoniny**!
+
+---
+
+**🍳 Kuchnia Antoniny - Twój inteligentny asystent kulinarny! ✨**
