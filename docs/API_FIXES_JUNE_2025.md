@@ -95,6 +95,9 @@ result["cost"] = {"total": 0.0, "prompt": 0.0, "completion": 0.0}
 result["finish_reason"] = "stop"
 ```
 
+### [2025-06] Dodano wsparcie dla Perplexity API
+- Pełna integracja Perplexity jako providera LLM (chat, search)
+- Możliwość wyboru Perplexity jako silnika web search
 ## Files Modified
 
 ### Backend Files

@@ -120,6 +120,19 @@ class Settings(BaseSettings):
     MISTRAL_TEMPERATURE: float = Field(default=0.1, description="Mistral Temperature")
 
     # =============================================================================
+    # KONFIGURACJA PERPLEXITY
+    # =============================================================================
+
+    PERPLEXITY_API_KEY: str = Field(default="", description="Perplexity API Key")
+    PERPLEXITY_BASE_URL: str = Field(default="https://api.perplexity.ai", description="Perplexity Base URL")
+    
+    # Perplexity Models
+    PERPLEXITY_CHAT_MODEL: str = Field(default="sonar-pro", description="Perplexity Chat Model")
+    PERPLEXITY_SEARCH_MODEL: str = Field(default="sonar-pro-online", description="Perplexity Search Model")
+    PERPLEXITY_MAX_TOKENS: int = Field(default=4096, description="Perplexity Max Tokens")
+    PERPLEXITY_TEMPERATURE: float = Field(default=0.1, description="Perplexity Temperature")
+
+    # =============================================================================
     # KONFIGURACJA PINECONE
     # =============================================================================
 
@@ -173,6 +186,7 @@ class Settings(BaseSettings):
     LOG_FILE_PATH: str = "./logs/backend.log"
     PROMETHEUS_MULTIPROC_DIR: str = "/tmp"
     ENABLE_METRICS: bool = True
+    PROMETHEUS_ENABLED: bool = True
 
     # =============================================================================
     # BACKEND - FASTAPI
@@ -210,12 +224,14 @@ class Settings(BaseSettings):
 
     MONTHLY_BUDGET: float = 100.0
     COST_ALERT_THRESHOLD: float = 80.0
+    COST_TRACKING_ENABLED: bool = True
     
     # Provider priorities (lower number = higher priority)
     PROVIDER_PRIORITY_OPENAI: int = 1
     PROVIDER_PRIORITY_ANTHROPIC: int = 2
     PROVIDER_PRIORITY_COHERE: int = 3
     PROVIDER_PRIORITY_MISTRAL: int = 4
+    PROVIDER_PRIORITY_PERPLEXITY: int = 5
 
     # =============================================================================
     # RATE LIMITING
@@ -224,6 +240,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_CHAT: int = 100
     RATE_LIMIT_UPLOAD: int = 10
     RATE_LIMIT_RAG: int = 50
+    RATE_LIMIT_ENABLED: bool = True
 
     # =============================================================================
     # DEVELOPMENT SPECIFIC
@@ -280,8 +297,12 @@ class Settings(BaseSettings):
         return bool(self.GOOGLE_VISION_CREDENTIALS_PATH and self.GOOGLE_VISION_PROJECT_ID)
 
     def is_mistral_configured(self) -> bool:
-        """Check if Mistral AI is properly configured"""
+        """Check if Mistral is configured."""
         return bool(self.MISTRAL_API_KEY)
+
+    def is_perplexity_configured(self) -> bool:
+        """Check if Perplexity is configured."""
+        return bool(self.PERPLEXITY_API_KEY)
 
     def get_available_providers(self) -> dict[str, bool]:
         """Get dictionary of available providers"""
@@ -294,6 +315,7 @@ class Settings(BaseSettings):
             "weaviate": self.is_weaviate_configured(),
             "azure_vision": self.is_azure_vision_configured(),
             "google_vision": self.is_google_vision_configured(),
+            "perplexity": self.is_perplexity_configured(),
         }
 
     # =============================================================================
@@ -317,7 +339,7 @@ class Settings(BaseSettings):
 
     @property
     def cohere_api_key(self) -> str:
-        """Alias for COHERE_API_KEY"""
+        """Get Cohere API key."""
         return self.COHERE_API_KEY
 
     @property
@@ -339,6 +361,11 @@ class Settings(BaseSettings):
             return parsed.port or 8080
         except:
             return 8080
+
+    @property
+    def perplexity_api_key(self) -> str:
+        """Get Perplexity API key."""
+        return self.PERPLEXITY_API_KEY
 
 
 # Create global settings instance

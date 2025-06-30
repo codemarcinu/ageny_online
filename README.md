@@ -835,3 +835,42 @@ Dziękujemy wszystkim kontrybutorom, którzy pomogli w rozwoju **Kuchni Antoniny
 ---
 
 **🍳 Kuchnia Antoniny - Twój inteligentny asystent kulinarny! ✨**
+
+## Nowość: Integracja Perplexity AI
+
+Projekt obsługuje teraz Perplexity API jako providera LLM oraz jako silnik wyszukiwania internetowego!
+
+### Jak skonfigurować Perplexity
+
+1. Uzyskaj klucz API z https://docs.perplexity.ai/guides/getting-started
+2. Dodaj do pliku `.env`:
+
+```
+PERPLEXITY_API_KEY=your_perplexity_api_key_here
+PERPLEXITY_CHAT_MODEL=sonar-pro
+PERPLEXITY_SEARCH_MODEL=sonar-pro-online
+PERPLEXITY_MAX_TOKENS=1000
+PERPLEXITY_TEMPERATURE=0.7
+```
+
+3. Perplexity pojawi się automatycznie jako provider LLM i web search.
+
+### Użycie w API
+
+- **Chat:** Perplexity jest automatycznie wybierany jako fallback lub po ustawieniu priorytetu.
+- **Web Search:**
+    - Endpoint: `POST /api/v2/web-search/search`
+    - Przykład body:
+      ```json
+      {
+        "query": "aktualne trendy AI",
+        "search_engine": "perplexity"
+      }
+      ```
+
+### Testy
+
+- Testy jednostkowe: `pytest tests/unit/test_perplexity_client.py -v`
+- Testy integracyjne: `pytest tests/integration/`
+
+---

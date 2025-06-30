@@ -18,6 +18,7 @@ class ProviderType(str, Enum):
     ANTHROPIC = "anthropic"
     COHERE = "cohere"
     MISTRAL = "mistral"
+    PERPLEXITY = "perplexity"
 
 
 class BaseLLMProvider:
@@ -67,7 +68,7 @@ class LLMProviderFactory:
             Provider instance
             
         Raises:
-            ValueError: If provider type is not supported
+            ValueError: If provider type is not supported or API key is missing
         """
         if provider_type not in cls._providers:
             raise ValueError(f"Unsupported provider: {provider_type}")
@@ -83,8 +84,12 @@ class LLMProviderFactory:
             if not api_key:
                 raise ValueError(f"API key required for provider: {provider_type}")
             
-            cls._instances[provider_type] = provider_class(api_key)
-            logger.info(f"Created provider instance: {provider_type}")
+            try:
+                cls._instances[provider_type] = provider_class(api_key)
+                logger.info(f"Created provider instance: {provider_type}")
+            except Exception as e:
+                logger.error(f"Failed to create provider {provider_type}: {e}")
+                raise ValueError(f"Failed to create provider {provider_type}: {e}")
         
         return cls._instances[provider_type]
     
@@ -96,6 +101,7 @@ class LLMProviderFactory:
             ProviderType.ANTHROPIC: settings.ANTHROPIC_API_KEY,
             ProviderType.COHERE: settings.COHERE_API_KEY,
             ProviderType.MISTRAL: settings.MISTRAL_API_KEY,
+            ProviderType.PERPLEXITY: settings.PERPLEXITY_API_KEY,
         }
         return api_key_map.get(provider_type)
     
@@ -122,6 +128,7 @@ class LLMProviderFactory:
             ProviderType.ANTHROPIC: settings.PROVIDER_PRIORITY_ANTHROPIC,
             ProviderType.COHERE: settings.PROVIDER_PRIORITY_COHERE,
             ProviderType.MISTRAL: settings.PROVIDER_PRIORITY_MISTRAL,
+            ProviderType.PERPLEXITY: settings.PROVIDER_PRIORITY_PERPLEXITY,
         }
         return priority_map.get(provider_type, 999)
     
@@ -203,12 +210,15 @@ class LLMProviderFactory:
             **kwargs: Additional parameters
             
         Returns:
-            Dictionary containing response and provider info
+            Chat completion result
+            
+        Raises:
+            Exception: If no providers are available or all providers fail
         """
         configured_providers = cls.get_configured_providers()
         
         if not configured_providers:
-            raise RuntimeError("No configured providers available")
+            raise Exception("No LLM providers configured")
         
         # Sort by priority (lower number = higher priority)
         sorted_providers = sorted(
@@ -218,11 +228,12 @@ class LLMProviderFactory:
         
         last_error = None
         
+        # Try each provider in order of priority
         for provider_type in sorted_providers:
             try:
                 provider = cls.create_provider(provider_type)
                 
-                # Adapt model name for provider if needed
+                # Adapt model for provider if needed
                 adapted_model = cls._adapt_model_for_provider(model, provider_type)
                 
                 result = await provider.chat(
@@ -234,14 +245,10 @@ class LLMProviderFactory:
                 )
                 
                 # Add provider info to result
-                if isinstance(result, str):
-                    result = {"text": result}
                 result["provider"] = provider_type.value
-                result["model"] = adapted_model or "gpt-4"
-                result["usage"] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-                result["cost"] = {"total": 0.0, "prompt": 0.0, "completion": 0.0}
-                result["finish_reason"] = "stop"
-                logger.info(f"Chat completion successful with {provider_type.value}")
+                result["model_used"] = adapted_model or "default"
+                
+                logger.info(f"Chat completion successful with provider: {provider_type.value}")
                 return result
                 
             except Exception as e:
@@ -249,8 +256,10 @@ class LLMProviderFactory:
                 logger.warning(f"Provider {provider_type.value} failed: {e}")
                 continue
         
-        # All providers failed
-        raise RuntimeError(f"All providers failed. Last error: {last_error}")
+        # If we get here, all providers failed
+        error_msg = f"All providers failed. Last error: {last_error}"
+        logger.error(error_msg)
+        raise Exception(error_msg)
 
     @classmethod
     def _adapt_model_for_provider(cls, model: Optional[str], provider_type: ProviderType) -> Optional[str]:
@@ -271,6 +280,13 @@ class LLMProviderFactory:
                 "gpt-3.5": "mistral-small-latest",
                 "gpt-4-turbo": "mistral-large-latest",
                 "gpt-4o-mini": "mistral-small-latest"
+            },
+            ProviderType.PERPLEXITY: {
+                "gpt-4": "sonar-pro",
+                "gpt-3.5": "sonar-small-online",
+                "gpt-4-turbo": "sonar-pro",
+                "gpt-4o-mini": "sonar-small-online",
+                "search": "sonar-pro-online"
             }
         }
         
@@ -301,6 +317,12 @@ try:
     LLMProviderFactory.register_provider(ProviderType.MISTRAL, MistralProvider)
 except ImportError:
     logger.warning("Mistral provider not available")
+
+try:
+    from .perplexity_client import PerplexityProvider
+    LLMProviderFactory.register_provider(ProviderType.PERPLEXITY, PerplexityProvider)
+except ImportError:
+    logger.warning("Perplexity provider not available")
 
 # Ułatwienie importu
 provider_factory = LLMProviderFactory

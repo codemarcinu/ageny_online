@@ -7,6 +7,8 @@ import asyncio
 from datetime import datetime
 import json
 
+from backend.core.llm_providers.provider_factory import LLMProviderFactory, ProviderType
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -136,9 +138,57 @@ class SerperProvider(WebSearchProvider):
             logger.error(f"Serper search failed: {e}")
             return []
 
+class PerplexityProvider(WebSearchProvider):
+    """Perplexity search provider using their AI-powered search."""
+    
+    def __init__(self):
+        self.provider_factory = LLMProviderFactory()
+    
+    async def search(self, query: str, max_results: int) -> List[WebSearchResult]:
+        """Search using Perplexity API."""
+        try:
+            # Check if Perplexity is configured
+            if ProviderType.PERPLEXITY not in self.provider_factory.get_configured_providers():
+                logger.warning("Perplexity not configured, falling back to DuckDuckGo")
+                return await DuckDuckGoProvider().search(query, max_results)
+            
+            # Use Perplexity for search
+            provider = self.provider_factory.create_provider(ProviderType.PERPLEXITY)
+            
+            # Perform search with Perplexity
+            search_result = await provider.search(
+                query=query,
+                model="sonar-pro-online",  # Use online model for search
+                max_tokens=1000
+            )
+            
+            # Create result from Perplexity response
+            results = []
+            if search_result.get("text"):
+                results.append(WebSearchResult(
+                    title="Perplexity AI Search",
+                    url="https://perplexity.ai",
+                    snippet=search_result["text"][:500] + "..." if len(search_result["text"]) > 500 else search_result["text"],
+                    source="perplexity_ai",
+                    timestamp=datetime.now().isoformat()
+                ))
+            
+            # If we don't have enough results, fall back to DuckDuckGo
+            if len(results) < max_results:
+                duckduckgo_results = await DuckDuckGoProvider().search(query, max_results - len(results))
+                results.extend(duckduckgo_results)
+            
+            return results[:max_results]
+            
+        except Exception as e:
+            logger.error(f"Perplexity search failed: {e}")
+            # Fall back to DuckDuckGo
+            return await DuckDuckGoProvider().search(query, max_results)
+
 # Initialize search providers
 search_providers = {
     "duckduckgo": DuckDuckGoProvider(),
+    "perplexity": PerplexityProvider(),
     # "serper": SerperProvider(api_key="your_api_key_here")  # Uncomment and add API key
 }
 

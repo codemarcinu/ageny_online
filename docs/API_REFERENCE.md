@@ -105,6 +105,32 @@ Most endpoints require API keys configured in the backend. No authentication hea
 
 ---
 
+## Perplexity API
+
+### Konfiguracja
+- Wymagane zmienne w `.env`:
+  - `PERPLEXITY_API_KEY`
+  - `PERPLEXITY_CHAT_MODEL`
+  - `PERPLEXITY_SEARCH_MODEL`
+
+### Endpointy korzystające z Perplexity
+- `/api/v2/chat/chat` (jeśli wybrany provider lub fallback)
+- `/api/v2/web-search/search` (ustaw `search_engine: "perplexity"`)
+
+### Przykład użycia web search
+```json
+{
+  "query": "najnowsze osiągnięcia AI",
+  "search_engine": "perplexity"
+}
+```
+
+### Uwagi
+- Perplexity może być używany równolegle z OpenAI, Mistral, Anthropic, Cohere.
+- Wymaga aktywnego klucza API.
+
+---
+
 ## Error Handling
 
 All errors are returned as JSON with a `detail` field:
