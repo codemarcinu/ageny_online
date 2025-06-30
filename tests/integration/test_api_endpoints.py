@@ -222,17 +222,24 @@ class TestChatEndpoints:
 class TestOCREndpoints:
     """Test OCR endpoints."""
     
-    @patch('backend.api.v2.endpoints.ocr.ocr_factory')
+    @patch('backend.api.v2.endpoints.ocr.ocr_provider_factory')
     def test_ocr_extract_text(self, mock_factory, client):
         """Test OCR text extraction endpoint."""
-        # Mock the factory response
-        mock_factory.extract_text = AsyncMock(return_value=Mock(
-            text="Sample receipt text extracted from image",
-            confidence=0.95,
-            provider="azure_vision",
-            processing_time=1.5,
-            cost=0.0015
-        ))
+        # Mock the factory methods
+        mock_provider_type = Mock()
+        mock_provider_type.value = "azure_vision"
+        mock_factory.get_best_provider.return_value = mock_provider_type
+        mock_provider = AsyncMock()
+        mock_provider.extract_text.return_value = {
+            "text": "Sample receipt text extracted from image",
+            "confidence": 0.95,
+            "provider": "azure_vision",
+            "model_used": "azure-vision-model",
+            "tokens_used": 100,
+            "cost": 0.0015,
+            "metadata": {}
+        }
+        mock_factory.create_provider.return_value = mock_provider
         
         # Create a proper mock image
         mock_image_data = create_mock_image()
@@ -330,7 +337,7 @@ class TestVectorStoreEndpoints:
         assert "vector_store_cost" in data
         assert "total_cost" in data
     
-    @patch('backend.api.v2.endpoints.vector_store.get_pinecone_client')
+    @patch('backend.api.v2.endpoints.vector_store.get_vector_store_client')
     @patch('backend.api.v2.endpoints.vector_store.llm_factory')
     def test_search_documents(self, mock_llm_factory, mock_get_client, client):
         """Test document search in vector store."""
@@ -342,13 +349,14 @@ class TestVectorStoreEndpoints:
         
         # Mock vector store client with proper match objects
         mock_client = Mock()
-        mock_match = Mock()
-        mock_match.id = "doc1"
-        mock_match.score = 0.95
-        mock_match.metadata = {"text": "Sample document text"}
-        
         mock_client.query_vectors = AsyncMock(return_value={
-            "matches": [mock_match],
+            "matches": [
+                {
+                    "id": "doc1",
+                    "score": 0.95,
+                    "metadata": {"text": "Sample document text"}
+                }
+            ],
             "cost": 0.0001
         })
         mock_get_client.return_value = mock_client
@@ -366,11 +374,10 @@ class TestVectorStoreEndpoints:
         assert data["query"] == "sample document"
         assert len(data["results"]) == 1
         assert data["results"][0]["id"] == "doc1"
-        assert "embedding_cost" in data
-        assert "search_cost" in data
-        assert "total_cost" in data
+        assert "processing_time" in data
+        assert "total_results" in data
     
-    @patch('backend.api.v2.endpoints.vector_store.get_pinecone_client')
+    @patch('backend.api.v2.endpoints.vector_store.get_vector_store_client')
     @patch('backend.api.v2.endpoints.vector_store.get_provider_config')
     def test_list_indexes(self, mock_get_config, mock_get_client, client):
         """Test listing vector store indexes."""
@@ -390,8 +397,9 @@ class TestVectorStoreEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["provider"] == "pinecone"
-        assert "index1" in data["indexes"]
-        assert "index2" in data["indexes"]
+        assert len(data["indexes"]) == 2
+        assert data["indexes"][0]["name"] == "index1"
+        assert data["indexes"][1]["name"] == "index2"
     
     @patch('backend.api.v2.endpoints.vector_store.get_pinecone_client')
     @patch('backend.api.v2.endpoints.vector_store.get_provider_config')
@@ -432,8 +440,8 @@ class TestSetupEndpoints:
         data = response.json()
         assert data["status"] == "success"
         assert "message" in data
-        assert "llm_providers" in data
-        assert "ocr_providers" in data
+        assert "providers_configured" in data
+        assert "timestamp" in data
     
     def test_get_cost_info(self, client):
         """Test cost information endpoint."""
@@ -442,8 +450,9 @@ class TestSetupEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert "llm_providers" in data
-        assert "ocr_providers" in data
-        assert "vector_stores" in data
+        assert "cost_breakdown" in data
+        assert "total_cost" in data
+        assert "currency" in data
 
 class TestErrorHandling:
     """Test error handling in API endpoints."""
@@ -473,8 +482,30 @@ class TestErrorHandling:
     def test_rate_limiting(self, client):
         """Test rate limiting."""
         # Make multiple requests to trigger rate limiting
-        for _ in range(15):  # Exceed the rate limit
-            response = client.get("/")
+        for _ in range(105):  # Exceed the rate limit (100/minute)
+            response = client.get("/api/v1/chat?message=test")
         
         # The last request should be rate limited
-        assert response.status_code == 429 
+        assert response.status_code == 429
+
+def test_web_search_perplexity(client):
+    """Test web search endpoint with Perplexity provider (mocked)."""
+    from unittest.mock import patch, AsyncMock
+    with patch("backend.api.v2.endpoints.web_search.PerplexityProvider.search", new_callable=AsyncMock) as mock_search:
+        mock_search.return_value = [
+            {
+                "title": "Perplexity AI Search",
+                "url": "https://perplexity.ai",
+                "snippet": "Perplexity AI to nowoczesny silnik wyszukiwania...",
+                "source": "perplexity_ai",
+                "timestamp": "2025-06-01T12:00:00"
+            }
+        ]
+        response = client.post("/api/v2/web-search/search", json={
+            "query": "najnowsze trendy AI",
+            "search_engine": "perplexity"
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["search_engine"] == "perplexity"
+        assert data["results"][0]["source"] == "perplexity_ai" 

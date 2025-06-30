@@ -192,7 +192,30 @@ search_providers = {
     # "serper": SerperProvider(api_key="your_api_key_here")  # Uncomment and add API key
 }
 
-@router.post("/search", response_model=WebSearchResponse)
+@router.post("/search", response_model=WebSearchResponse, responses={
+    200: {
+        "description": "Web search results",
+        "content": {
+            "application/json": {
+                "example": {
+                    "query": "najnowsze trendy AI",
+                    "results": [
+                        {
+                            "title": "Perplexity AI Search",
+                            "url": "https://perplexity.ai",
+                            "snippet": "Perplexity AI to nowoczesny silnik wyszukiwania...",
+                            "source": "perplexity_ai",
+                            "timestamp": "2025-06-01T12:00:00"
+                        }
+                    ],
+                    "total_results": 1,
+                    "search_engine": "perplexity",
+                    "search_time": 0.42
+                }
+            }
+        }
+    }
+})
 async def web_search(request: WebSearchRequest):
     """
     Perform web search to get current information.
