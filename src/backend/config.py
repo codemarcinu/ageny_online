@@ -39,8 +39,8 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
 
     # Environment configuration
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    ENVIRONMENT: str = "production"
+    DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     TELEMETRY_ENABLED: bool = False
 
@@ -195,10 +195,10 @@ class Settings(BaseSettings):
 
     PORT: int = 8000
     HOST: str = "0.0.0.0"
-    UVICORN_RELOAD: bool = True
+    UVICORN_RELOAD: bool = False
     UVICORN_RELOAD_DIRS: str = "./src"
-    ENABLE_DEBUG_TOOLBAR: bool = True
-    ENABLE_SQL_LOGGING: bool = True
+    ENABLE_DEBUG_TOOLBAR: bool = False
+    ENABLE_SQL_LOGGING: bool = False
 
     # =============================================================================
     # CORS I BEZPIECZEŃSTWO
@@ -247,8 +247,8 @@ class Settings(BaseSettings):
     # DEVELOPMENT SPECIFIC
     # =============================================================================
 
-    LOAD_TEST_DATA: bool = True
-    SEED_DATABASE: bool = True
+    LOAD_TEST_DATA: bool = False
+    SEED_DATABASE: bool = False
 
     # =============================================================================
     # EXTERNAL SERVICES (opcjonalne)

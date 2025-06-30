@@ -14,8 +14,8 @@ services:
       - ./logs:/app/logs
       - ./config:/app/config
     environment:
-      - ENVIRONMENT=${ENVIRONMENT:-development}
-      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data/ageny_online.db}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
@@ -162,7 +162,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - VITE_API_URL=https://localhost/api
     depends_on:
       - backend

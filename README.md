@@ -222,22 +222,69 @@ pytest --cov=src
 
 ## 🚀 Wdrożenie
 
-### Produkcja
+### 🐳 Docker Compose (Zalecane)
 
 ```bash
-# Uruchomienie produkcyjne
-gunicorn src.backend.api.main:app -w 4 -k uvicorn.workers.UvicornWorker
+# 1. Klonowanie repozytorium
+git clone https://github.com/codemarcinu/ageny_online.git
+cd ageny_online
 
-# Z Docker
-docker build -t ageny-online .
-docker run -p 8000:8000 ageny-online
+# 2. Konfiguracja środowiska
+cp env.example .env
+# Edytuj .env i dodaj klucze API
+
+# 3. Uruchomienie z SSL i Nginx
+docker-compose -f docker-compose.online.yaml up -d
+
+# 4. Sprawdzenie statusu
+docker-compose -f docker-compose.online.yaml ps
 ```
 
-### Monitoring
+### 🌐 Dostęp po wdrożeniu
+
+- **Frontend:** https://your-domain.com
+- **API:** https://your-domain.com/api
+- **API Docs:** https://your-domain.com/docs
+- **Health Check:** https://your-domain.com/health
+
+### 🔒 SSL Configuration
+
+Aplikacja używa Nginx jako reverse proxy z SSL:
+
+```bash
+# Generowanie certyfikatu SSL (dla localhost)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout ssl/nginx.key -out ssl/nginx.crt \
+  -subj "/C=PL/ST=State/L=City/O=Organization/CN=localhost"
+
+# Dla domeny produkcyjnej użyj Let's Encrypt
+sudo certbot --nginx -d your-domain.com
+```
+
+### 📊 Monitoring
 
 - **Prometheus metrics:** `/metrics`
 - **Health checks:** `/health`
 - **Logs:** `./logs/backend.log`
+- **Nginx logs:** `docker-compose logs nginx`
+
+### 🔧 Konfiguracja produkcyjna
+
+1. **Zmienne środowiskowe:** Ustaw `ENVIRONMENT=production` w `.env`
+2. **API Keys:** Dodaj wszystkie wymagane klucze API
+3. **Database:** SQLite jest używany domyślnie, dla produkcji rozważ PostgreSQL
+4. **Backup:** Skonfiguruj backup bazy danych i plików konfiguracyjnych
+
+### 🚀 Deployment Checklist
+
+- [ ] Klonowanie repozytorium na serwer
+- [ ] Konfiguracja zmiennych środowiskowych
+- [ ] Generowanie certyfikatu SSL
+- [ ] Uruchomienie kontenerów Docker
+- [ ] Testowanie endpointów API
+- [ ] Konfiguracja firewall (porty 80, 443)
+- [ ] Ustawienie automatycznego restartu
+- [ ] Konfiguracja monitoring i alertów
 
 ## 🤝 Wkład
 
