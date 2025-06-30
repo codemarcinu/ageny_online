@@ -31,6 +31,8 @@ interface AddProductForm {
   fat?: number
 }
 
+const USER_ID = 1;
+
 export default function ProductsSection() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -65,7 +67,7 @@ export default function ProductsSection() {
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/v2/cooking/products/list')
+      const response = await api.get('/v2/cooking/products/list', { params: { user_id: USER_ID } })
       setProducts(response.data.products || [])
     } catch (error) {
       console.error('Błąd podczas pobierania produktów:', error)
@@ -77,7 +79,7 @@ export default function ProductsSection() {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/v2/cooking/products/categories')
+      const response = await api.get('/v2/cooking/products/categories', { params: { user_id: USER_ID } })
       setCategories(response.data.categories || [])
     } catch (error) {
       console.error('Błąd podczas pobierania kategorii:', error)
@@ -90,7 +92,7 @@ export default function ProductsSection() {
     try {
       await api.post('/v2/cooking/products/add', {
         ...formData,
-        user_id: 1 // Antonina's user ID
+        user_id: USER_ID
       })
       
       toast.success('Produkt został dodany!')
@@ -137,7 +139,7 @@ export default function ProductsSection() {
     try {
       await api.put(`/v2/cooking/products/${editingProduct.id}`, {
         ...formData,
-        user_id: 1
+        user_id: USER_ID
       })
       
       toast.success('Produkt został zaktualizowany!')
@@ -225,7 +227,7 @@ export default function ProductsSection() {
           'Content-Type': 'multipart/form-data',
         },
         params: {
-          user_id: 1 // Antonina's user ID
+          user_id: USER_ID
         }
       })
       

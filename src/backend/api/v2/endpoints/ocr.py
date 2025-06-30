@@ -17,7 +17,7 @@ ocr_factory = ocr_provider_factory
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/ocr", tags=["OCR"])
+router = APIRouter(tags=["OCR"])
 
 
 class OCRResponse(BaseModel):

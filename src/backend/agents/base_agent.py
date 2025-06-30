@@ -5,6 +5,7 @@ Zapewnia podstawowy interfejs dla wszystkich agentów AI.
 
 import asyncio
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
@@ -202,7 +203,7 @@ class GeneralConversationAgent(BaseAgent):
         **kwargs: Any
     ) -> AgentResponse:
         """Process general conversation query"""
-        start_time = asyncio.get_event_loop().time()
+        start_time = time.time()
         
         try:
             self.request_count += 1
@@ -218,18 +219,24 @@ class GeneralConversationAgent(BaseAgent):
             
             # Generate response
             response_text = await self._execute_with_timeout(
-                provider.chat(messages)
+                provider.chat(messages=messages, **kwargs)
             )
             
-            processing_time = asyncio.get_event_loop().time() - start_time
+            processing_time = time.time() - start_time
             
             return AgentResponse(
                 success=True,
                 content=response_text,
                 agent_type=self.config.agent_type,
-                provider_used=provider.__class__.__name__,
+                provider_used=getattr(provider, 'provider_type', provider.__class__.__name__),
+                tokens_used=kwargs.get('tokens_used', 0),
+                cost=kwargs.get('cost', 0.0),
                 processing_time=processing_time,
-                metadata={"query_length": len(query)}
+                metadata={
+                    "query_length": len(query),
+                    "response_length": len(response_text),
+                    "context": context.dict() if context else {}
+                }
             )
             
         except Exception as e:
@@ -241,6 +248,6 @@ class GeneralConversationAgent(BaseAgent):
                 success=False,
                 content=f"Sorry, I encountered an error: {str(e)}",
                 agent_type=self.config.agent_type,
-                processing_time=asyncio.get_event_loop().time() - start_time,
+                processing_time=time.time() - start_time,
                 metadata={"error": str(e)}
             ) 

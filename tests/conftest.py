@@ -165,12 +165,8 @@ def test_config():
 @pytest.fixture(autouse=True)
 def setup_test_environment(test_config):
     """Setup test environment."""
-    # Override settings for testing
-    import backend.config
-    backend.config.settings.OPENAI_API_KEY = test_config["openai_api_key"]
-    backend.config.settings.MISTRAL_API_KEY = test_config["mistral_api_key"]
-    backend.config.settings.AZURE_VISION_KEY = test_config["azure_vision_key"]
-    backend.config.settings.GOOGLE_VISION_CREDENTIALS_PATH = test_config["google_vision_credentials_path"]
+    # Don't override settings automatically - let tests set their own values
+    pass
 
 
 @pytest.fixture

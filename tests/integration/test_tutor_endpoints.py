@@ -5,41 +5,47 @@ Integration tests for Tutor Antonina endpoints.
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock
+import sys
+import os
+
+# Add src to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+
+from backend.api.main import app
 
 
 @pytest.fixture
 def client():
     """Create test client."""
-    from src.backend.api.main import app
     return TestClient(app)
 
 
 @pytest.fixture
 def mock_llm_factory():
     """Mock LLM factory for testing."""
-    with patch('src.backend.api.v2.endpoints.chat.llm_factory') as mock:
+    with patch('backend.api.v2.endpoints.chat.llm_factory') as mock:
         # Mock provider
         mock_provider = AsyncMock()
         mock_provider.chat.return_value = {
-            "choices": [{"message": {"content": "Test AI response"}}],
+            "text": "Test AI response",
             "model": "gpt-4",
             "provider": "openai",
             "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
-            "cost": 0.001,
+            "cost": {"total_cost": 0.001},
             "finish_reason": "stop"
         }
         
         # Mock provider factory methods
         mock.get_available_providers.return_value = [type('ProviderType', (), {'value': 'openai'})()]
         mock.get_provider.return_value = mock_provider
-        mock.chat_with_fallback.return_value = {
-            "choices": [{"message": {"content": "Test AI response"}}],
+        mock.chat_with_fallback = AsyncMock(return_value={
+            "text": "Test AI response",
             "model": "gpt-4",
             "provider": "openai",
             "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
-            "cost": 0.001,
+            "cost": {"total_cost": 0.001},
             "finish_reason": "stop"
-        }
+        })
         
         yield mock
 
@@ -47,12 +53,12 @@ def mock_llm_factory():
 @pytest.fixture
 def mock_tutor_agent():
     """Mock Tutor Antonina agent."""
-    with patch('src.backend.api.v2.endpoints.chat.TutorAntonina') as mock:
+    with patch('backend.api.v2.endpoints.chat.TutorAntonina') as mock:
         mock_instance = AsyncMock()
-        mock_instance.guide.return_value = {
+        mock_instance.guide = AsyncMock(return_value={
             "question": "W jakim kontekście chcesz użyć tego prompta?",
             "feedback": None
-        }
+        })
         mock.return_value = mock_instance
         yield mock
 
@@ -118,10 +124,10 @@ class TestTutorEndpoints:
     def test_tutor_endpoint_with_feedback(self, client, mock_llm_factory, mock_tutor_agent):
         """Test tutor endpoint when prompt is complete."""
         # Mock tutor agent to return feedback instead of question
-        mock_tutor_agent.return_value.guide.return_value = {
+        mock_tutor_agent.return_value.guide = AsyncMock(return_value={
             "question": None,
             "feedback": "Sugestia: Twój prompt jest dobry.\n\nUlepszony prompt: [ulepszona wersja]"
-        }
+        })
         
         response = client.post("/api/v2/chat/tutor", json={
             "messages": [
@@ -138,7 +144,7 @@ class TestTutorEndpoints:
     def test_tutor_endpoint_error_handling(self, client, mock_llm_factory, mock_tutor_agent):
         """Test tutor endpoint error handling."""
         # Mock tutor agent to raise exception
-        mock_tutor_agent.return_value.guide.side_effect = Exception("Test error")
+        mock_tutor_agent.return_value.guide = AsyncMock(side_effect=Exception("Test error"))
         
         response = client.post("/api/v2/chat/tutor", json={
             "messages": [
@@ -152,7 +158,7 @@ class TestTutorEndpoints:
     def test_chat_with_tutor_mode_error_handling(self, client, mock_llm_factory, mock_tutor_agent):
         """Test chat endpoint with tutor mode error handling."""
         # Mock tutor agent to raise exception
-        mock_tutor_agent.return_value.guide.side_effect = Exception("Test error")
+        mock_tutor_agent.return_value.guide = AsyncMock(side_effect=Exception("Test error"))
         
         response = client.post("/api/v2/chat/chat", json={
             "messages": [

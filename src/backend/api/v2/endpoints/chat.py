@@ -12,7 +12,7 @@ from backend.agents.tutor_agent import TutorAntonina
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/chat", tags=["Chat"])
+router = APIRouter(tags=["Chat"])
 
 class ChatMessage(BaseModel):
     """Chat message model."""
@@ -124,6 +124,19 @@ async def chat_completion(request: ChatRequest):
         if not request.messages:
             raise HTTPException(status_code=400, detail="At least one message is required")
         
+        # Validate message structure
+        for i, message in enumerate(request.messages):
+            if not message.role or not message.content:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Invalid message at index {i}: role and content are required"
+                )
+            if message.role not in ["user", "assistant", "system"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid role '{message.role}' at index {i}. Must be 'user', 'assistant', or 'system'"
+                )
+        
         last_message = request.messages[-1].content
         web_search_used = False
         web_search_results = None
@@ -131,55 +144,66 @@ async def chat_completion(request: ChatRequest):
         # Check if web search should be used
         if request.enable_web_search and should_use_web_search(last_message):
             logger.info(f"Performing web search for query: {last_message}")
-            web_search_results = await perform_web_search(last_message, max_results=3)
-            web_search_used = len(web_search_results) > 0
-            
-            if web_search_used:
-                # Enhance the message with web search results
-                enhanced_message = f"{last_message}\n\nAktualne informacje z internetu:\n"
-                for i, result in enumerate(web_search_results, 1):
-                    enhanced_message += f"{i}. {result['title']}: {result['snippet']}\n"
-                    enhanced_message += f"   Źródło: {result['url']}\n\n"
+            try:
+                web_search_results = await perform_web_search(last_message, max_results=3)
+                web_search_used = len(web_search_results) > 0
                 
-                # Update the last message with enhanced content
-                request.messages[-1].content = enhanced_message
+                if web_search_used:
+                    # Enhance the message with web search results
+                    enhanced_message = f"{last_message}\n\nAktualne informacje z internetu:\n"
+                    for i, result in enumerate(web_search_results, 1):
+                        enhanced_message += f"{i}. {result['title']}: {result['snippet']}\n"
+                        enhanced_message += f"   Źródło: {result['url']}\n\n"
+                    
+                    # Update the last message with enhanced content
+                    request.messages[-1].content = enhanced_message
+            except Exception as e:
+                logger.warning(f"Web search failed, continuing without it: {e}")
         
         # Generate response using LLM provider
-        if request.provider:
-            # Use specific provider
-            provider_type = None
-            
-            # Check if we're in test mode (llm_factory is mocked)
-            if hasattr(llm_factory, '_mock_name'):
-                # Test mode - create mock provider type
-                from backend.core.llm_providers.provider_factory import ProviderType
-                provider_type = ProviderType(request.provider)
+        try:
+            if request.provider:
+                # Use specific provider
+                provider_type = None
+                
+                # Check if we're in test mode (llm_factory is mocked)
+                if hasattr(llm_factory, '_mock_name'):
+                    # Test mode - create mock provider type
+                    from backend.core.llm_providers.provider_factory import ProviderType
+                    provider_type = ProviderType(request.provider)
+                else:
+                    # Normal mode - check available providers
+                    for pt in llm_factory.get_available_providers():
+                        if pt.value == request.provider:
+                            provider_type = pt
+                            break
+                
+                if not provider_type:
+                    available_providers = [p.value for p in llm_factory.get_available_providers()]
+                    logger.error(f"Provider {request.provider} not available. Available: {available_providers}")
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Provider {request.provider} not available. Available: {available_providers}"
+                    )
+                
+                provider = llm_factory.get_provider(provider_type)
+                result = await provider.chat(
+                    messages=[{"role": msg.role, "content": msg.content} for msg in request.messages],
+                    model=request.model,
+                    temperature=request.temperature,
+                    max_tokens=request.max_tokens
+                )
             else:
-                # Normal mode - check available providers
-                for pt in llm_factory.get_available_providers():
-                    if pt.value == request.provider:
-                        provider_type = pt
-                        break
-            
-            if not provider_type:
-                logger.error(f"Provider {request.provider} not available. Available: {[p.value for p in llm_factory.get_available_providers()]}")
-                raise HTTPException(status_code=400, detail=f"Provider {request.provider} not available")
-            
-            provider = llm_factory.get_provider(provider_type)
-            result = await provider.chat(
-                messages=[{"role": msg.role, "content": msg.content} for msg in request.messages],
-                model=request.model,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens
-            )
-        else:
-            # Use fallback provider
-            result = await llm_factory.chat_with_fallback(
-                messages=[{"role": msg.role, "content": msg.content} for msg in request.messages],
-                model=request.model,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens
-            )
+                # Use fallback provider
+                result = await llm_factory.chat_with_fallback(
+                    messages=[{"role": msg.role, "content": msg.content} for msg in request.messages],
+                    model=request.model,
+                    temperature=request.temperature,
+                    max_tokens=request.max_tokens
+                )
+        except Exception as e:
+            logger.error(f"LLM provider error: {e}")
+            raise HTTPException(status_code=500, detail=f"LLM provider error: {str(e)}")
         
         # Add response time and web search info
         result["response_time"] = time.time() - start_time

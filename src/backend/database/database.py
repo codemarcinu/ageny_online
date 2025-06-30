@@ -4,7 +4,7 @@ Zapewnia konfigurację SQLAlchemy z pełną separacją.
 """
 
 import logging
-from typing import Generator
+from typing import AsyncGenerator, Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
@@ -15,17 +15,30 @@ from backend.models.base import Base
 
 logger = logging.getLogger(__name__)
 
+def get_sync_database_url() -> str:
+    """Get sync database URL for migrations and testing."""
+    db_url = settings.DATABASE_URL
+    if "sqlite+aiosqlite" in db_url:
+        return db_url.replace("sqlite+aiosqlite", "sqlite")
+    elif "postgresql+asyncpg" in db_url:
+        return db_url.replace("postgresql+asyncpg", "postgresql")
+    return db_url
+
 # Create async engine for SQLAlchemy 2.0
 async_engine = create_async_engine(
-    settings.DATABASE_URL.replace("sqlite+aiosqlite", "sqlite+aiosqlite"),
+    settings.DATABASE_URL,
     echo=settings.ENABLE_SQL_LOGGING,
-    future=True
+    future=True,
+    pool_pre_ping=True,
+    pool_recycle=300
 )
 
 # Create sync engine for migrations and testing
 engine = create_engine(
-    settings.DATABASE_URL.replace("sqlite+aiosqlite", "sqlite"),
-    echo=settings.ENABLE_SQL_LOGGING
+    get_sync_database_url(),
+    echo=settings.ENABLE_SQL_LOGGING,
+    pool_pre_ping=True,
+    pool_recycle=300
 )
 
 # Create async session factory
@@ -66,7 +79,7 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-async def get_async_session() -> AsyncSession:
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Get async database session."""
     async with async_session() as session:
         try:

@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { ChefHat, ShoppingCart, BookOpen } from 'lucide-react'
+import { ChefHat, ShoppingCart, BookOpen, Apple, Trophy, Target } from 'lucide-react'
 import { useGamification } from '../contexts/GamificationContext'
 
 // Komponenty kulinarne
 import ProductsSection from '../components/cooking/ProductsSection'
 import RecipesSection from '../components/cooking/RecipesSection'
 import ShoppingListSection from '../components/cooking/ShoppingListSection'
+import DietPlanSection from '../components/cooking/DietPlanSection'
+import CookingChallengesSection from '../components/cooking/CookingChallengesSection'
 
-type CookingSection = 'products' | 'recipes' | 'shopping'
+type CookingSection = 'products' | 'recipes' | 'shopping' | 'diet' | 'challenges'
 
 export default function CookingPage() {
   const [activeSection, setActiveSection] = useState<CookingSection>('products')
@@ -31,6 +33,18 @@ export default function CookingPage() {
       name: 'Listy zakupów',
       icon: ChefHat,
       description: 'Planuj zakupy i oszczędzaj'
+    },
+    {
+      id: 'diet' as CookingSection,
+      name: 'Plan Diety',
+      icon: Apple,
+      description: 'Planuj posiłki i śledź wartości odżywcze'
+    },
+    {
+      id: 'challenges' as CookingSection,
+      name: 'Wyzwania',
+      icon: Trophy,
+      description: 'Weź udział w wyzwaniach kulinarnych'
     }
   ]
 
@@ -48,6 +62,10 @@ export default function CookingPage() {
         return <RecipesSection />
       case 'shopping':
         return <ShoppingListSection />
+      case 'diet':
+        return <DietPlanSection />
+      case 'challenges':
+        return <CookingChallengesSection />
       default:
         return <ProductsSection />
     }
@@ -63,7 +81,7 @@ export default function CookingPage() {
               🍳 Kuchnia Antoniny
             </h1>
             <p className="text-teen-purple-600 mt-2">
-              Odkryj świat gotowania z pomocą AI
+              Odkryj świat gotowania z pomocą AI - specjalnie dla Ciebie!
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -76,10 +94,58 @@ export default function CookingPage() {
         </div>
       </div>
 
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-teen-purple-200 p-4">
+          <div className="flex items-center space-x-3">
+            <div className="bg-teen-pink-100 p-2 rounded-lg">
+              <ShoppingCart className="h-5 w-5 text-teen-pink-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-teen-purple-700">24</div>
+              <div className="text-sm text-teen-purple-600">Produkty</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-teen-purple-200 p-4">
+          <div className="flex items-center space-x-3">
+            <div className="bg-teen-purple-100 p-2 rounded-lg">
+              <BookOpen className="h-5 w-5 text-teen-purple-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-teen-purple-700">12</div>
+              <div className="text-sm text-teen-purple-600">Przepisy</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-teen-purple-200 p-4">
+          <div className="flex items-center space-x-3">
+            <div className="bg-green-100 p-2 rounded-lg">
+              <Apple className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-teen-purple-700">5</div>
+              <div className="text-sm text-teen-purple-600">Plany diety</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-teen-purple-200 p-4">
+          <div className="flex items-center space-x-3">
+            <div className="bg-yellow-100 p-2 rounded-lg">
+              <Trophy className="h-5 w-5 text-yellow-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-teen-purple-700">8</div>
+              <div className="text-sm text-teen-purple-600">Wyzwania</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Navigation Tabs */}
       <div className="bg-white rounded-xl shadow-sm border border-teen-purple-200">
         <div className="border-b border-teen-purple-200">
-          <nav className="flex space-x-8 px-6">
+          <nav className="flex space-x-8 px-6 overflow-x-auto">
             {sections.map((section) => {
               const Icon = section.icon
               const isActive = activeSection === section.id
@@ -88,7 +154,7 @@ export default function CookingPage() {
                 <button
                   key={section.id}
                   onClick={() => handleSectionChange(section.id)}
-                  className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
+                  className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${
                     isActive
                       ? 'border-teen-purple-500 text-teen-purple-600 bg-teen-purple-50'
                       : 'border-transparent text-teen-purple-500 hover:text-teen-purple-700 hover:border-teen-purple-300 hover:bg-teen-purple-25'
@@ -113,6 +179,19 @@ export default function CookingPage() {
       {/* Active Section Content */}
       <div className="bg-white rounded-xl shadow-sm border border-teen-purple-200">
         {renderActiveSection()}
+      </div>
+
+      {/* Motivation Section */}
+      <div className="bg-gradient-to-r from-teen-pink-50 to-teen-purple-50 rounded-xl p-6 border border-teen-purple-200">
+        <div className="text-center">
+          <Target className="h-8 w-8 text-teen-purple-600 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-teen-purple-700 mb-2">
+            Cel na dziś: Przygotuj coś pysznego!
+          </h3>
+          <p className="text-teen-purple-600 text-sm">
+            Każdy posiłek to nowa przygoda kulinarna. Eksperymentuj, baw się i ciesz się gotowaniem! 🍳✨
+          </p>
+        </div>
       </div>
     </div>
   )

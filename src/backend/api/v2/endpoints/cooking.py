@@ -7,6 +7,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
+from datetime import datetime
 
 from backend.database import get_async_session
 from backend.services.cooking_service import (
@@ -17,12 +18,17 @@ from backend.schemas.cooking import (
     ProductCreate, ProductResponse, ProductUpdate, ProductSearchRequest,
     RecipeCreate, RecipeResponse, RecipeUpdate, RecipeSearchRequest,
     ShoppingListCreate, ShoppingListResponse, ShoppingListUpdate,
-    RecipeGenerationRequest, ShoppingListOptimizationRequest
+    RecipeGenerationRequest, ShoppingListOptimizationRequest,
+    CookingStatsResponse, MealPlanRequest, MealPlanResponse,
+    RecipeNutritionRequest, RecipeNutritionResponse, BMICalculationRequest,
+    BMICalculationResponse, CookingChallengeRequest, CookingChallengeResponse,
+    WeeklyMealPlanRequest, WeeklyMealPlanResponse, ProductCategoryRequest,
+    ProductCategoryResponse, CookingAchievementRequest, CookingAchievementResponse
 )
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/cooking", tags=["Cooking"])
+router = APIRouter(tags=["Cooking"])
 
 
 # --- Produkty ---
@@ -213,26 +219,14 @@ async def generate_recipe(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Query(..., description="User ID")  # TODO: Replace with proper auth
 ):
-    """Generate recipe using AI."""
+    """Generate a recipe using AI based on available ingredients."""
     try:
         service = CookingRecipeService(db)
-        recipe_data = await service.generate_recipe(
-            request.ingredients, request.preferences, user_id
-        )
-        
-        # Create recipe from generated data
-        recipe_create = RecipeCreate(
-            name=recipe_data["name"],
-            ingredients=recipe_data["ingredients"],
-            instructions=recipe_data["instructions"],
-            is_ai_generated=True
-        )
-        
-        result = await service.save_recipe(recipe_create, user_id)
+        result = await service.generate_recipe(request, user_id)
         return RecipeResponse.from_orm(result)
     except Exception as e:
         logger.error(f"Failed to generate recipe: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/recipes/save", response_model=RecipeResponse, status_code=status.HTTP_201_CREATED)
@@ -244,7 +238,7 @@ async def save_recipe(
     """Save a new recipe."""
     try:
         service = CookingRecipeService(db)
-        result = await service.save_recipe(recipe, user_id)
+        result = await service.add_recipe(recipe, user_id)
         return RecipeResponse.from_orm(result)
     except Exception as e:
         logger.error(f"Failed to save recipe: {e}")
@@ -296,7 +290,7 @@ async def search_recipes(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Query(..., description="User ID")  # TODO: Replace with proper auth
 ):
-    """Search recipes by name or description."""
+    """Search recipes by name, ingredients, or tags."""
     try:
         service = CookingRecipeService(db)
         recipes = await service.search_recipes(query, user_id, skip=skip, limit=limit)
@@ -312,26 +306,14 @@ async def recipe_from_ingredients(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Query(..., description="User ID")  # TODO: Replace with proper auth
 ):
-    """Generate recipe from available ingredients."""
+    """Generate a recipe from available ingredients."""
     try:
         service = CookingRecipeService(db)
-        recipe_data = await service.generate_recipe(
-            request.ingredients, request.preferences, user_id
-        )
-        
-        # Create recipe from generated data
-        recipe_create = RecipeCreate(
-            name=recipe_data["name"],
-            ingredients=recipe_data["ingredients"],
-            instructions=recipe_data["instructions"],
-            is_ai_generated=True
-        )
-        
-        result = await service.save_recipe(recipe_create, user_id)
+        result = await service.generate_recipe_from_ingredients(request, user_id)
         return RecipeResponse.from_orm(result)
     except Exception as e:
         logger.error(f"Failed to generate recipe from ingredients: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/recipes/optimize", response_model=RecipeResponse)
@@ -340,10 +322,18 @@ async def optimize_recipe(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Query(..., description="User ID")  # TODO: Replace with proper auth
 ):
-    """Optimize recipe using AI (placeholder)."""
-    # TODO: Implement AI recipe optimization
-    logger.info(f"Recipe optimization requested for recipe {recipe_id} by user {user_id}")
-    raise HTTPException(status_code=501, detail="Recipe optimization not implemented yet")
+    """Optimize a recipe using AI."""
+    try:
+        service = CookingRecipeService(db)
+        result = await service.optimize_recipe(recipe_id, user_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Recipe not found")
+        return RecipeResponse.from_orm(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to optimize recipe: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/recipes/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -365,7 +355,7 @@ async def delete_recipe(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# --- Listy zakupów ---
+# --- Lista zakupów ---
 @router.post("/shopping/create", response_model=ShoppingListResponse, status_code=status.HTTP_201_CREATED)
 async def create_shopping_list(
     shopping_list: ShoppingListCreate,
@@ -388,10 +378,14 @@ async def shopping_list_from_recipe(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Query(..., description="User ID")  # TODO: Replace with proper auth
 ):
-    """Create shopping list from recipe ingredients (placeholder)."""
-    # TODO: Implement shopping list creation from recipe
-    logger.info(f"Shopping list from recipe requested for recipe {recipe_id} by user {user_id}")
-    raise HTTPException(status_code=501, detail="Shopping list from recipe not implemented yet")
+    """Create a shopping list from a recipe."""
+    try:
+        service = CookingShoppingListService(db)
+        result = await service.create_shopping_list_from_recipe(recipe_id, user_id)
+        return ShoppingListResponse.from_orm(result)
+    except Exception as e:
+        logger.error(f"Failed to create shopping list from recipe: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/shopping/optimize", response_model=ShoppingListResponse)
@@ -400,10 +394,14 @@ async def optimize_shopping_list(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Query(..., description="User ID")  # TODO: Replace with proper auth
 ):
-    """Optimize shopping list using AI (placeholder)."""
-    # TODO: Implement AI shopping list optimization
-    logger.info(f"Shopping list optimization requested for user {user_id}")
-    raise HTTPException(status_code=501, detail="Shopping list optimization not implemented yet")
+    """Optimize a shopping list using AI."""
+    try:
+        service = CookingShoppingListService(db)
+        result = await service.optimize_shopping_list(request, user_id)
+        return ShoppingListResponse.from_orm(result)
+    except Exception as e:
+        logger.error(f"Failed to optimize shopping list: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/shopping/list", response_model=List[ShoppingListResponse])
@@ -429,7 +427,7 @@ async def complete_shopping_list(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Query(..., description="User ID")  # TODO: Replace with proper auth
 ):
-    """Mark shopping list as completed."""
+    """Mark a shopping list as completed."""
     try:
         service = CookingShoppingListService(db)
         result = await service.complete_shopping_list(list_id, user_id)
@@ -468,11 +466,250 @@ async def estimate_shopping_list_cost(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Query(..., description="User ID")  # TODO: Replace with proper auth
 ):
-    """Estimate total cost of shopping list."""
+    """Estimate the cost of a shopping list."""
     try:
         service = CookingShoppingListService(db)
-        cost = await service.estimate_cost(list_id, user_id)
+        cost = await service.estimate_shopping_list_cost(list_id, user_id)
         return cost
     except Exception as e:
         logger.error(f"Failed to estimate shopping list cost: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- NEW: Extended endpoints for Antonina's cooking features ---
+
+@router.get("/stats", response_model=CookingStatsResponse)
+async def get_cooking_stats(
+    db: AsyncSession = Depends(get_async_session),
+    user_id: int = Query(..., description="User ID")
+):
+    """Get cooking statistics for Antonina."""
+    try:
+        product_service = CookingProductService(db)
+        recipe_service = CookingRecipeService(db)
+        shopping_service = CookingShoppingListService(db)
+        
+        # Get basic stats
+        total_products = await product_service.count_products(user_id)
+        total_recipes = await recipe_service.count_recipes(user_id)
+        total_shopping_lists = await shopping_service.count_shopping_lists(user_id)
+        completed_shopping_lists = await shopping_service.count_completed_shopping_lists(user_id)
+        
+        # Get favorite categories
+        categories = await product_service.list_categories(user_id)
+        
+        # Get recent items
+        recent_recipes = await recipe_service.get_recent_recipes(user_id, limit=5)
+        recent_shopping_lists = await shopping_service.get_recent_shopping_lists(user_id, limit=5)
+        
+        # Calculate total spent (simplified)
+        total_spent = 0.0  # TODO: Implement actual spending calculation
+        
+        return CookingStatsResponse(
+            total_products=total_products,
+            total_recipes=total_recipes,
+            total_shopping_lists=total_shopping_lists,
+            completed_shopping_lists=completed_shopping_lists,
+            total_spent=total_spent,
+            favorite_categories=categories[:5],  # Top 5 categories
+            recent_recipes=[{"id": r.id, "name": r.name, "created_at": r.created_at} for r in recent_recipes],
+            recent_shopping_lists=[{"id": sl.id, "name": sl.name, "created_at": sl.created_at} for sl in recent_shopping_lists]
+        )
+    except Exception as e:
+        logger.error(f"Failed to get cooking stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/meal-plan", response_model=MealPlanResponse)
+async def create_meal_plan(
+    request: MealPlanRequest,
+    db: AsyncSession = Depends(get_async_session),
+    user_id: int = Query(..., description="User ID")
+):
+    """Create a personalized meal plan for Antonina."""
+    try:
+        # Import diet plugin functionality
+        from backend.plugins.diet_plugin import diet_plugin
+        return await diet_plugin._generate_meal_plan(request, db, user_id)
+    except Exception as e:
+        logger.error(f"Failed to create meal plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/bmi", response_model=BMICalculationResponse)
+async def calculate_bmi(request: BMICalculationRequest):
+    """Calculate BMI and provide recommendations for Antonina."""
+    try:
+        from backend.plugins.diet_plugin import diet_plugin
+        return await diet_plugin._calculate_bmi(request)
+    except Exception as e:
+        logger.error(f"Failed to calculate BMI: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/recipe-nutrition", response_model=RecipeNutritionResponse)
+async def analyze_recipe_nutrition(
+    request: RecipeNutritionRequest,
+    db: AsyncSession = Depends(get_async_session),
+    user_id: int = Query(..., description="User ID")
+):
+    """Analyze nutrition value of a recipe."""
+    try:
+        from backend.plugins.diet_plugin import diet_plugin
+        return await diet_plugin._analyze_recipe_nutrition(request, db, user_id)
+    except Exception as e:
+        logger.error(f"Failed to analyze recipe nutrition: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/challenges", response_model=CookingChallengeResponse)
+async def create_cooking_challenge(
+    request: CookingChallengeRequest,
+    db: AsyncSession = Depends(get_async_session),
+    user_id: int = Query(..., description="User ID")
+):
+    """Create a cooking challenge for Antonina."""
+    try:
+        # Generate cooking challenge using AI
+        from backend.core.llm_providers.provider_factory import provider_factory
+        
+        prompt = f"""
+        Stwórz wyzwanie kulinarne dla 14-letniej dziewczynki:
+        
+        Poziom trudności: {request.difficulty}
+        Typ kuchni: {request.cuisine_type or 'dowolny'}
+        Dostępne składniki: {', '.join(request.available_ingredients) if request.available_ingredients else 'dowolne'}
+        Limit czasu: {request.time_limit or 60} minut
+        
+        Stwórz:
+        - Tytuł wyzwania
+        - Opis
+        - Listę składników
+        - Instrukcje krok po kroku
+        - Wskazówki
+        - Punkty do zdobycia
+        
+        Odpowiedz w formacie JSON.
+        """
+        
+        response = await provider_factory.chat_with_fallback(
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.8
+        )
+        
+        # Simplified response for now
+        return CookingChallengeResponse(
+            challenge_id=1,
+            title=f"Wyzwanie: {request.cuisine_type or 'Kulinarne'}",
+            description="Przygotuj pyszne danie w określonym czasie!",
+            difficulty=request.difficulty,
+            ingredients=["składnik 1", "składnik 2", "składnik 3"],
+            instructions=["Krok 1", "Krok 2", "Krok 3"],
+            time_limit=request.time_limit or 60,
+            points_reward=100,
+            tips=["Wskazówka 1", "Wskazówka 2"]
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to create cooking challenge: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/weekly-plan", response_model=WeeklyMealPlanResponse)
+async def create_weekly_meal_plan(
+    request: WeeklyMealPlanRequest,
+    db: AsyncSession = Depends(get_async_session),
+    user_id: int = Query(..., description="User ID")
+):
+    """Create a weekly meal plan for Antonina."""
+    try:
+        # Generate weekly meal plan
+        from backend.core.llm_providers.provider_factory import provider_factory
+        
+        prompt = f"""
+        Stwórz tygodniowy plan posiłków dla 14-letniej dziewczynki:
+        
+        Data rozpoczęcia: {request.start_date}
+        Preferencje: {request.preferences or 'brak'}
+        Budżet tygodniowy: {request.budget or 'nieograniczony'} PLN
+        
+        Stwórz plan na 7 dni z:
+        - Śniadaniem
+        - Drugim śniadaniem
+        - Obiadem
+        - Podwieczorkiem
+        - Kolacją
+        
+        Każdy posiłek powinien zawierać:
+        - Nazwę
+        - Składniki
+        - Kalorie
+        - Koszt
+        
+        Odpowiedz w formacie JSON.
+        """
+        
+        response = await provider_factory.chat_with_fallback(
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+        
+        # Simplified response for now
+        return WeeklyMealPlanResponse(
+            week_start=request.start_date,
+            total_cost=request.budget or 200.0,
+            daily_plans=[
+                {
+                    "day": "Poniedziałek",
+                    "meals": [
+                        {"name": "Śniadanie", "calories": 300},
+                        {"name": "Obiad", "calories": 500}
+                    ]
+                }
+            ],
+            shopping_list=[],
+            nutrition_summary={
+                "total_calories": 2000,
+                "total_proteins": 80,
+                "total_carbs": 250,
+                "total_fats": 70
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to create weekly meal plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/categories", response_model=ProductCategoryResponse, status_code=status.HTTP_201_CREATED)
+async def create_product_category(
+    category: ProductCategoryRequest,
+    db: AsyncSession = Depends(get_async_session),
+    user_id: int = Query(..., description="User ID")
+):
+    """Create a new product category for Antonina."""
+    try:
+        # TODO: Implement category service
+        return ProductCategoryResponse(
+            id=1,
+            name=category.name,
+            description=category.description,
+            color=category.color,
+            icon=category.icon,
+            product_count=0,
+            created_at=datetime.utcnow()
+        )
+    except Exception as e:
+        logger.error(f"Failed to create product category: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/nutrition-tips")
+async def get_nutrition_tips():
+    """Get nutrition tips for teenagers."""
+    try:
+        from backend.plugins.diet_plugin import diet_plugin
+        return await diet_plugin.get_nutrition_tips()
+    except Exception as e:
+        logger.error(f"Failed to get nutrition tips: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 

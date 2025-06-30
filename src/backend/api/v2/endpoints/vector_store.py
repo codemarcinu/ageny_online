@@ -27,7 +27,7 @@ def get_pinecone_client(provider: str = "pinecone"):
     """Get Pinecone client (mock for tests)"""
     return MockVectorStoreClient(provider)
 
-router = APIRouter(prefix="/vector-store", tags=["Vector Store"])
+router = APIRouter(tags=["Vector Store"])
 
 class DocumentUploadRequest(BaseModel):
     """Document upload request model."""

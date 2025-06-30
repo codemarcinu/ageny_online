@@ -30,7 +30,7 @@ export function HealthProvider({ children }: { children: ReactNode }) {
   const checkHealth = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/health')
+      const response = await fetch('/api/health')
       const data = await response.json()
       
       setHealthStatus({
